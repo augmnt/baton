@@ -37,7 +37,18 @@
     "mcp",
     "model-context-protocol"
   ],
-  "author": "",
+  "author": {
+    "name": "augmnt",
+    "url": "https://augmnt.sh"
+  },
+  "homepage": "https://github.com/augmnt/baton#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/augmnt/baton.git"
+  },
+  "bugs": {
+    "url": "https://github.com/augmnt/baton/issues"
+  },
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
