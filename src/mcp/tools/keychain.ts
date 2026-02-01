@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { Address } from 'viem'
 import * as keychain from '../../modules/keychain.js'
 import { getErrorMessage } from '../../lib/utils.js'
+import { getConfiguredAddress } from '../../lib/config.js'
 
 export function registerKeychainTools(server: McpServer) {
   // Get access key info
@@ -278,6 +279,109 @@ export function registerKeychainTools(server: McpServer) {
                 transactionHash: result.transactionHash,
                 blockNumber: result.blockNumber.toString(),
                 explorerUrl: result.explorerUrl,
+              }),
+            },
+          ],
+        }
+      } catch (error) {
+        return {
+          content: [{ type: 'text', text: `Error: ${getErrorMessage(error)}` }],
+          isError: true,
+        }
+      }
+    }
+  )
+
+  // Get access keys for configured wallet
+  server.tool(
+    'tempo_getMyAccessKeys',
+    'Get all access keys for the configured wallet (TEMPO_PRIVATE_KEY). Use this when the user asks "what are my access keys?" or similar.',
+    {},
+    async () => {
+      try {
+        const owner = getConfiguredAddress()
+        const keys = await keychain.getAccessKeys(owner)
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({ owner, accessKeys: keys }),
+            },
+          ],
+        }
+      } catch (error) {
+        return {
+          content: [{ type: 'text', text: `Error: ${getErrorMessage(error)}` }],
+          isError: true,
+        }
+      }
+    }
+  )
+
+  // Get access keys with info for configured wallet
+  server.tool(
+    'tempo_getMyAccessKeysWithInfo',
+    'Get all access keys with detailed info for the configured wallet (TEMPO_PRIVATE_KEY). Use this when the user asks "show my access keys with details" or similar.',
+    {},
+    async () => {
+      try {
+        const owner = getConfiguredAddress()
+        const keys = await keychain.getAccessKeysWithInfo(owner)
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                owner,
+                accessKeys: keys.map((k) => ({
+                  accessKey: k.accessKey,
+                  permissions: k.permissions,
+                  expiry: k.expiry.toString(),
+                  isActive: k.isActive,
+                  isExpired: keychain.isExpired(k),
+                })),
+              }),
+            },
+          ],
+        }
+      } catch (error) {
+        return {
+          content: [{ type: 'text', text: `Error: ${getErrorMessage(error)}` }],
+          isError: true,
+        }
+      }
+    }
+  )
+
+  // Get specific access key for configured wallet
+  server.tool(
+    'tempo_getMyAccessKey',
+    'Get information about a specific access key for the configured wallet (TEMPO_PRIVATE_KEY). Use this when the user asks "show info for this access key" or similar.',
+    {
+      accessKey: z.string().describe('Access key address'),
+    },
+    async ({ accessKey }) => {
+      try {
+        const owner = getConfiguredAddress()
+        const info = await keychain.getAccessKey(owner, accessKey as Address)
+        if (!info) {
+          return {
+            content: [{ type: 'text', text: JSON.stringify({ owner, found: false }) }],
+          }
+        }
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                owner,
+                found: true,
+                accessKey: info.accessKey,
+                permissions: info.permissions,
+                expiry: info.expiry.toString(),
+                isActive: info.isActive,
+                isExpired: keychain.isExpired(info),
+                timeUntilExpiry: keychain.getTimeUntilExpiry(info).toString(),
               }),
             },
           ],

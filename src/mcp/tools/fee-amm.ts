@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { Address } from 'viem'
 import * as feeAmm from '../../modules/fee-amm.js'
 import { getErrorMessage, parseAmount, formatAmount } from '../../lib/utils.js'
+import { getConfiguredAddress } from '../../lib/config.js'
 
 export function registerFeeAmmTools(server: McpServer) {
   // Get liquidity position
@@ -163,6 +164,71 @@ export function registerFeeAmmTools(server: McpServer) {
                 blockNumber: result.blockNumber.toString(),
                 explorerUrl: result.explorerUrl,
                 amount: result.amount?.toString() || null,
+              }),
+            },
+          ],
+        }
+      } catch (error) {
+        return {
+          content: [{ type: 'text', text: `Error: ${getErrorMessage(error)}` }],
+          isError: true,
+        }
+      }
+    }
+  )
+
+  // Get fee liquidity for configured wallet
+  server.tool(
+    'tempo_getMyFeeLiquidity',
+    'Get fee AMM liquidity position for the configured wallet (TEMPO_PRIVATE_KEY). Use this when the user asks "what is my liquidity position?" or similar.',
+    {
+      token: z.string().describe('Token address'),
+    },
+    async ({ token }) => {
+      try {
+        const provider = getConfiguredAddress()
+        const liquidity = await feeAmm.getLiquidity(token as Address, provider)
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                provider,
+                token,
+                liquidity: liquidity.toString(),
+                liquidityFormatted: formatAmount(liquidity),
+              }),
+            },
+          ],
+        }
+      } catch (error) {
+        return {
+          content: [{ type: 'text', text: `Error: ${getErrorMessage(error)}` }],
+          isError: true,
+        }
+      }
+    }
+  )
+
+  // Get liquidity share for configured wallet
+  server.tool(
+    'tempo_getMyLiquidityShare',
+    'Get liquidity share percentage for the configured wallet (TEMPO_PRIVATE_KEY). Use this when the user asks "what is my liquidity share?" or similar.',
+    {
+      token: z.string().describe('Token address'),
+    },
+    async ({ token }) => {
+      try {
+        const provider = getConfiguredAddress()
+        const share = await feeAmm.getLiquidityShare(token as Address, provider)
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                provider,
+                token,
+                sharePercent: share,
               }),
             },
           ],

@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { Address } from 'viem'
 import * as account from '../../modules/account.js'
 import { getErrorMessage } from '../../lib/utils.js'
+import { getConfiguredAddress } from '../../lib/config.js'
 
 export function registerAccountTools(server: McpServer) {
   // Get balance of a specific token
@@ -220,6 +221,193 @@ export function registerAccountTools(server: McpServer) {
                   formatted: b.formatted,
                 }))
               ),
+            },
+          ],
+        }
+      } catch (error) {
+        return {
+          content: [{ type: 'text', text: `Error: ${getErrorMessage(error)}` }],
+          isError: true,
+        }
+      }
+    }
+  )
+
+  // Get configured wallet address
+  server.tool(
+    'tempo_getMyAddress',
+    'Get the wallet address for the configured private key (TEMPO_PRIVATE_KEY). Use this when the user asks "what is my address?" or similar.',
+    {},
+    async () => {
+      try {
+        const address = getConfiguredAddress()
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ address }) }],
+        }
+      } catch (error) {
+        return {
+          content: [{ type: 'text', text: `Error: ${getErrorMessage(error)}` }],
+          isError: true,
+        }
+      }
+    }
+  )
+
+  // Get all balances for configured wallet
+  server.tool(
+    'tempo_getMyBalances',
+    'Get all known token balances for the configured wallet (TEMPO_PRIVATE_KEY). Use this when the user asks "what are my balances?" or similar.',
+    {},
+    async () => {
+      try {
+        const address = getConfiguredAddress()
+        const balances = await account.getBalances(address)
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                address,
+                balances: balances.map((b) => ({
+                  token: b.token,
+                  symbol: b.symbol,
+                  balance: b.balance.toString(),
+                  formatted: b.formatted,
+                })),
+              }),
+            },
+          ],
+        }
+      } catch (error) {
+        return {
+          content: [{ type: 'text', text: `Error: ${getErrorMessage(error)}` }],
+          isError: true,
+        }
+      }
+    }
+  )
+
+  // Get complete account info for configured wallet
+  server.tool(
+    'tempo_getMyAccountInfo',
+    'Get complete account information for the configured wallet (TEMPO_PRIVATE_KEY) including address, nonce, fee token, and balances. Use this when the user asks "show my account info" or similar.',
+    {},
+    async () => {
+      try {
+        const address = getConfiguredAddress()
+        const [info, balances] = await Promise.all([
+          account.getAccountInfo(address),
+          account.getNonZeroBalances(address),
+        ])
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                address: info.address,
+                nonce: info.nonce.toString(),
+                feeToken: info.feeToken,
+                balances: balances.map((b) => ({
+                  token: b.token,
+                  symbol: b.symbol,
+                  balance: b.balance.toString(),
+                  formatted: b.formatted,
+                })),
+              }),
+            },
+          ],
+        }
+      } catch (error) {
+        return {
+          content: [{ type: 'text', text: `Error: ${getErrorMessage(error)}` }],
+          isError: true,
+        }
+      }
+    }
+  )
+
+  // Get specific token balance for configured wallet
+  server.tool(
+    'tempo_getMyBalance',
+    'Get token balance for the configured wallet (TEMPO_PRIVATE_KEY). Use this when the user asks "what is my USDC balance?" or similar.',
+    {
+      token: z.string().describe('Token contract address'),
+    },
+    async ({ token }) => {
+      try {
+        const address = getConfiguredAddress()
+        const result = await account.getFormattedBalance(token as Address, address)
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                address,
+                token: result.token,
+                symbol: result.symbol,
+                balance: result.balance.toString(),
+                formatted: result.formatted,
+              }),
+            },
+          ],
+        }
+      } catch (error) {
+        return {
+          content: [{ type: 'text', text: `Error: ${getErrorMessage(error)}` }],
+          isError: true,
+        }
+      }
+    }
+  )
+
+  // Get nonce for configured wallet
+  server.tool(
+    'tempo_getMyNonce',
+    'Get the transaction nonce for the configured wallet (TEMPO_PRIVATE_KEY). Use this when the user asks "what is my nonce?" or similar.',
+    {},
+    async () => {
+      try {
+        const address = getConfiguredAddress()
+        const nonce = await account.getNonce(address)
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({ address, nonce: nonce.toString() }),
+            },
+          ],
+        }
+      } catch (error) {
+        return {
+          content: [{ type: 'text', text: `Error: ${getErrorMessage(error)}` }],
+          isError: true,
+        }
+      }
+    }
+  )
+
+  // Get non-zero balances for configured wallet
+  server.tool(
+    'tempo_getMyNonZeroBalances',
+    'Get all non-zero token balances for the configured wallet (TEMPO_PRIVATE_KEY). Use this when the user asks "show my non-zero balances" or similar.',
+    {},
+    async () => {
+      try {
+        const address = getConfiguredAddress()
+        const balances = await account.getNonZeroBalances(address)
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                address,
+                balances: balances.map((b) => ({
+                  token: b.token,
+                  symbol: b.symbol,
+                  balance: b.balance.toString(),
+                  formatted: b.formatted,
+                })),
+              }),
             },
           ],
         }

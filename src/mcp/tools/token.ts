@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { Address, Hex } from 'viem'
 import * as token from '../../modules/token.js'
 import { getErrorMessage, parseAmount, formatAmount } from '../../lib/utils.js'
+import { getConfiguredAddress } from '../../lib/config.js'
 
 export function registerTokenTools(server: McpServer) {
   // Get token metadata
@@ -409,6 +410,120 @@ export function registerTokenTools(server: McpServer) {
             {
               type: 'text',
               text: JSON.stringify({
+                canTransfer: result.canTransfer,
+                balance: result.balance.toString(),
+                balanceFormatted: formatAmount(result.balance),
+                shortfall: result.shortfall.toString(),
+                shortfallFormatted: formatAmount(result.shortfall),
+              }),
+            },
+          ],
+        }
+      } catch (error) {
+        return {
+          content: [{ type: 'text', text: `Error: ${getErrorMessage(error)}` }],
+          isError: true,
+        }
+      }
+    }
+  )
+
+  // Get allowance for configured wallet
+  server.tool(
+    'tempo_getMyAllowance',
+    'Get token allowance where the configured wallet (TEMPO_PRIVATE_KEY) is the owner. Use this when the user asks "what is my USDC allowance for DEX?" or similar.',
+    {
+      token: z.string().describe('Token contract address'),
+      spender: z.string().describe('Spender address'),
+    },
+    async ({ token: tokenAddress, spender }) => {
+      try {
+        const owner = getConfiguredAddress()
+        const allowance = await token.getAllowance(
+          tokenAddress as Address,
+          owner,
+          spender as Address
+        )
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                owner,
+                spender,
+                token: tokenAddress,
+                allowance: allowance.toString(),
+                formatted: formatAmount(allowance),
+              }),
+            },
+          ],
+        }
+      } catch (error) {
+        return {
+          content: [{ type: 'text', text: `Error: ${getErrorMessage(error)}` }],
+          isError: true,
+        }
+      }
+    }
+  )
+
+  // Get token roles for configured wallet
+  server.tool(
+    'tempo_getMyTokenRoles',
+    'Get token roles for the configured wallet (TEMPO_PRIVATE_KEY). Use this when the user asks "what roles do I have on this token?" or similar.',
+    {
+      token: z.string().describe('Token contract address'),
+    },
+    async ({ token: tokenAddress }) => {
+      try {
+        const account = getConfiguredAddress()
+        const roles = await token.getRoles(tokenAddress as Address, account)
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                account,
+                token: tokenAddress,
+                roles,
+              }),
+            },
+          ],
+        }
+      } catch (error) {
+        return {
+          content: [{ type: 'text', text: `Error: ${getErrorMessage(error)}` }],
+          isError: true,
+        }
+      }
+    }
+  )
+
+  // Check if configured wallet can transfer
+  server.tool(
+    'tempo_canITransfer',
+    'Check if the configured wallet (TEMPO_PRIVATE_KEY) can transfer a specified amount. Use this when the user asks "can I transfer 100 USDC?" or similar.',
+    {
+      token: z.string().describe('Token contract address'),
+      amount: z.string().describe('Amount to transfer'),
+    },
+    async ({ token: tokenAddress, amount }) => {
+      try {
+        const from = getConfiguredAddress()
+        const parsedAmount = parseAmount(amount)
+        const result = await token.canTransfer(
+          tokenAddress as Address,
+          from,
+          parsedAmount
+        )
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                from,
+                token: tokenAddress,
+                amount,
                 canTransfer: result.canTransfer,
                 balance: result.balance.toString(),
                 balanceFormatted: formatAmount(result.balance),

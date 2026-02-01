@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { Address } from 'viem'
 import * as faucet from '../../modules/faucet.js'
 import { getErrorMessage, formatAmount } from '../../lib/utils.js'
+import { getConfiguredAddress } from '../../lib/config.js'
 
 export function registerFaucetTools(server: McpServer) {
   // Fund address via faucet
@@ -141,6 +142,102 @@ export function registerFaucetTools(server: McpServer) {
             {
               type: 'text',
               text: JSON.stringify({
+                funded: result.funded,
+                reason: result.reason || null,
+                transactionHash: result.result?.transactionHash || null,
+                blockNumber: result.result?.blockNumber.toString() || null,
+                explorerUrl: result.result?.explorerUrl || null,
+              }),
+            },
+          ],
+        }
+      } catch (error) {
+        return {
+          content: [{ type: 'text', text: `Error: ${getErrorMessage(error)}` }],
+          isError: true,
+        }
+      }
+    }
+  )
+
+  // Fund configured wallet via faucet
+  server.tool(
+    'tempo_fundMe',
+    'Fund the configured wallet (TEMPO_PRIVATE_KEY) via the testnet faucet. Use this when the user asks "fund my wallet" or similar.',
+    {},
+    async () => {
+      try {
+        const address = getConfiguredAddress()
+        const result = await faucet.fundAddress(address)
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                address,
+                success: result.success,
+                transactionHash: result.transactionHash,
+                blockNumber: result.blockNumber.toString(),
+                explorerUrl: result.explorerUrl,
+              }),
+            },
+          ],
+        }
+      } catch (error) {
+        return {
+          content: [{ type: 'text', text: `Error: ${getErrorMessage(error)}` }],
+          isError: true,
+        }
+      }
+    }
+  )
+
+  // Get faucet cooldown for configured wallet
+  server.tool(
+    'tempo_getMyFaucetCooldown',
+    'Check faucet cooldown status for the configured wallet (TEMPO_PRIVATE_KEY). Use this when the user asks "can I use the faucet?" or similar.',
+    {},
+    async () => {
+      try {
+        const address = getConfiguredAddress()
+        const status = await faucet.getFaucetCooldown(address)
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                address,
+                canRequest: status.canRequest,
+                cooldownRemaining: status.cooldownRemaining,
+                lastRequestTime: status.lastRequestTime.toString(),
+              }),
+            },
+          ],
+        }
+      } catch (error) {
+        return {
+          content: [{ type: 'text', text: `Error: ${getErrorMessage(error)}` }],
+          isError: true,
+        }
+      }
+    }
+  )
+
+  // Fund configured wallet if eligible
+  server.tool(
+    'tempo_fundMeIfEligible',
+    'Fund the configured wallet (TEMPO_PRIVATE_KEY) if eligible (checks cooldown first). Use this when the user asks "fund me if I can" or similar.',
+    {},
+    async () => {
+      try {
+        const address = getConfiguredAddress()
+        const result = await faucet.fundAddressIfEligible(address)
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                address,
                 funded: result.funded,
                 reason: result.reason || null,
                 transactionHash: result.result?.transactionHash || null,

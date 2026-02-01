@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { Address } from 'viem'
 import * as history from '../../modules/history.js'
 import { getErrorMessage, formatAmount, formatTimestamp } from '../../lib/utils.js'
+import { getConfiguredAddress } from '../../lib/config.js'
 
 export function registerHistoryTools(server: McpServer) {
   // Get transfer history
@@ -179,6 +180,153 @@ export function registerHistoryTools(server: McpServer) {
                   logIndex: log.logIndex,
                 }))
               ),
+            },
+          ],
+        }
+      } catch (error) {
+        return {
+          content: [{ type: 'text', text: `Error: ${getErrorMessage(error)}` }],
+          isError: true,
+        }
+      }
+    }
+  )
+
+  // Get transfer history for configured wallet
+  server.tool(
+    'tempo_getMyTransferHistory',
+    'Get transfer history for the configured wallet (TEMPO_PRIVATE_KEY). Use this when the user asks "show my transfer history" or similar.',
+    {
+      token: z.string().describe('Token contract address'),
+      fromBlock: z.string().optional().describe('Start block number'),
+      toBlock: z.string().optional().describe('End block number'),
+      limit: z.number().optional().describe('Maximum number of results (default 100)'),
+    },
+    async ({ token, fromBlock, toBlock, limit }) => {
+      try {
+        const address = getConfiguredAddress()
+        const transfers = await history.getTransferHistory({
+          token: token as Address,
+          address,
+          fromBlock: fromBlock ? BigInt(fromBlock) : undefined,
+          toBlock: toBlock ? BigInt(toBlock) : undefined,
+          limit,
+        })
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                address,
+                transfers: transfers.map((t) => ({
+                  token: t.token,
+                  from: t.from,
+                  to: t.to,
+                  amount: t.amount.toString(),
+                  amountFormatted: formatAmount(t.amount),
+                  memo: t.memo,
+                  transactionHash: t.transactionHash,
+                  blockNumber: t.blockNumber.toString(),
+                  timestamp: t.timestamp.toString(),
+                  timestampFormatted: t.timestamp > 0n ? formatTimestamp(t.timestamp) : null,
+                })),
+              }),
+            },
+          ],
+        }
+      } catch (error) {
+        return {
+          content: [{ type: 'text', text: `Error: ${getErrorMessage(error)}` }],
+          isError: true,
+        }
+      }
+    }
+  )
+
+  // Get incoming transfers for configured wallet
+  server.tool(
+    'tempo_getMyIncomingTransfers',
+    'Get incoming transfers for the configured wallet (TEMPO_PRIVATE_KEY). Use this when the user asks "show transfers I received" or similar.',
+    {
+      token: z.string().describe('Token contract address'),
+      fromBlock: z.string().optional().describe('Start block number'),
+      toBlock: z.string().optional().describe('End block number'),
+      limit: z.number().optional().describe('Maximum number of results (default 100)'),
+    },
+    async ({ token, fromBlock, toBlock, limit }) => {
+      try {
+        const address = getConfiguredAddress()
+        const transfers = await history.getIncomingTransfers({
+          token: token as Address,
+          address,
+          fromBlock: fromBlock ? BigInt(fromBlock) : undefined,
+          toBlock: toBlock ? BigInt(toBlock) : undefined,
+          limit,
+        })
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                address,
+                transfers: transfers.map((t) => ({
+                  from: t.from,
+                  amount: t.amount.toString(),
+                  amountFormatted: formatAmount(t.amount),
+                  transactionHash: t.transactionHash,
+                  blockNumber: t.blockNumber.toString(),
+                  timestamp: t.timestamp.toString(),
+                  timestampFormatted: t.timestamp > 0n ? formatTimestamp(t.timestamp) : null,
+                })),
+              }),
+            },
+          ],
+        }
+      } catch (error) {
+        return {
+          content: [{ type: 'text', text: `Error: ${getErrorMessage(error)}` }],
+          isError: true,
+        }
+      }
+    }
+  )
+
+  // Get outgoing transfers for configured wallet
+  server.tool(
+    'tempo_getMyOutgoingTransfers',
+    'Get outgoing transfers for the configured wallet (TEMPO_PRIVATE_KEY). Use this when the user asks "show transfers I sent" or similar.',
+    {
+      token: z.string().describe('Token contract address'),
+      fromBlock: z.string().optional().describe('Start block number'),
+      toBlock: z.string().optional().describe('End block number'),
+      limit: z.number().optional().describe('Maximum number of results (default 100)'),
+    },
+    async ({ token, fromBlock, toBlock, limit }) => {
+      try {
+        const address = getConfiguredAddress()
+        const transfers = await history.getOutgoingTransfers({
+          token: token as Address,
+          address,
+          fromBlock: fromBlock ? BigInt(fromBlock) : undefined,
+          toBlock: toBlock ? BigInt(toBlock) : undefined,
+          limit,
+        })
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                address,
+                transfers: transfers.map((t) => ({
+                  to: t.to,
+                  amount: t.amount.toString(),
+                  amountFormatted: formatAmount(t.amount),
+                  transactionHash: t.transactionHash,
+                  blockNumber: t.blockNumber.toString(),
+                  timestamp: t.timestamp.toString(),
+                  timestampFormatted: t.timestamp > 0n ? formatTimestamp(t.timestamp) : null,
+                })),
+              }),
             },
           ],
         }

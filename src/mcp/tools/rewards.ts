@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { Address } from 'viem'
 import * as rewards from '../../modules/rewards.js'
 import { getErrorMessage, parseAmount, formatAmount } from '../../lib/utils.js'
+import { getConfiguredAddress } from '../../lib/config.js'
 
 export function registerRewardsTools(server: McpServer) {
   // Get claimable rewards
@@ -235,6 +236,114 @@ export function registerRewardsTools(server: McpServer) {
                   explorerUrl: r.explorerUrl,
                 }))
               ),
+            },
+          ],
+        }
+      } catch (error) {
+        return {
+          content: [{ type: 'text', text: `Error: ${getErrorMessage(error)}` }],
+          isError: true,
+        }
+      }
+    }
+  )
+
+  // Get claimable rewards for configured wallet
+  server.tool(
+    'tempo_getMyClaimableRewards',
+    'Get claimable rewards for the configured wallet (TEMPO_PRIVATE_KEY). Use this when the user asks "how much rewards can I claim?" or similar.',
+    {
+      token: z.string().describe('Reward token address'),
+    },
+    async ({ token }) => {
+      try {
+        const account = getConfiguredAddress()
+        const claimable = await rewards.getClaimableRewards(
+          token as Address,
+          account
+        )
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                account,
+                token,
+                claimable: claimable.toString(),
+                claimableFormatted: formatAmount(claimable),
+              }),
+            },
+          ],
+        }
+      } catch (error) {
+        return {
+          content: [{ type: 'text', text: `Error: ${getErrorMessage(error)}` }],
+          isError: true,
+        }
+      }
+    }
+  )
+
+  // Get claimable rewards for multiple tokens for configured wallet
+  server.tool(
+    'tempo_getMyClaimableRewardsMulti',
+    'Get claimable rewards for multiple tokens for the configured wallet (TEMPO_PRIVATE_KEY). Use this when the user asks "show all my claimable rewards" or similar.',
+    {
+      tokens: z.array(z.string()).describe('Array of reward token addresses'),
+    },
+    async ({ tokens }) => {
+      try {
+        const account = getConfiguredAddress()
+        const claimables = await rewards.getClaimableRewardsMulti(
+          tokens as Address[],
+          account
+        )
+
+        const result: Array<{ token: string; claimable: string; claimableFormatted: string }> = []
+        claimables.forEach((amount, token) => {
+          result.push({
+            token,
+            claimable: amount.toString(),
+            claimableFormatted: formatAmount(amount),
+          })
+        })
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                account,
+                rewards: result,
+              }),
+            },
+          ],
+        }
+      } catch (error) {
+        return {
+          content: [{ type: 'text', text: `Error: ${getErrorMessage(error)}` }],
+          isError: true,
+        }
+      }
+    }
+  )
+
+  // Check if configured wallet has claimable rewards
+  server.tool(
+    'tempo_doIHaveClaimableRewards',
+    'Check if the configured wallet (TEMPO_PRIVATE_KEY) has any claimable rewards. Use this when the user asks "do I have any rewards to claim?" or similar.',
+    {
+      token: z.string().describe('Reward token address'),
+    },
+    async ({ token }) => {
+      try {
+        const account = getConfiguredAddress()
+        const has = await rewards.hasClaimableRewards(token as Address, account)
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({ account, token, hasClaimable: has }),
             },
           ],
         }

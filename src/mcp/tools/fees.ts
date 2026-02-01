@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { Address } from 'viem'
 import * as fees from '../../modules/fees.js'
 import { getErrorMessage, formatAmount } from '../../lib/utils.js'
+import { getConfiguredAddress } from '../../lib/config.js'
 
 export function registerFeesTools(server: McpServer) {
   // Get fee token for account
@@ -228,6 +229,32 @@ export function registerFeesTools(server: McpServer) {
                 feeFormatted: formatAmount(result.fee),
                 token: result.token,
               }),
+            },
+          ],
+        }
+      } catch (error) {
+        return {
+          content: [{ type: 'text', text: `Error: ${getErrorMessage(error)}` }],
+          isError: true,
+        }
+      }
+    }
+  )
+
+  // Get fee token for configured wallet
+  server.tool(
+    'tempo_getMyFeeToken',
+    'Get the fee token configured for the configured wallet (TEMPO_PRIVATE_KEY). Use this when the user asks "what is my fee token?" or similar.',
+    {},
+    async () => {
+      try {
+        const account = getConfiguredAddress()
+        const feeToken = await fees.getFeeToken(account)
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({ account, feeToken }),
             },
           ],
         }
