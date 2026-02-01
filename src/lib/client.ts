@@ -21,7 +21,7 @@ import { Contracts } from './constants.js'
 
 // Tempo Moderato mainnet chain definition
 export const tempoModerato: Chain = {
-  id: 1, // Update with actual chain ID
+  id: 42429,
   name: 'Tempo Moderato',
   nativeCurrency: {
     decimals: 6,
@@ -48,7 +48,7 @@ export const tempoModerato: Chain = {
 
 // Tempo testnet chain definition
 export const tempoTestnet: Chain = {
-  id: 2, // Update with actual chain ID
+  id: 42431,
   name: 'Tempo Testnet',
   nativeCurrency: {
     decimals: 6,

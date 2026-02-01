@@ -8,7 +8,7 @@ import {
   parseUnits,
   stringToHex,
 } from 'viem'
-import { Defaults } from './constants.js'
+import { Defaults, DexErrors } from './constants.js'
 
 // ============================================================================
 // Amount Utilities
@@ -225,6 +225,62 @@ export function getErrorMessage(error: unknown): string {
     return error
   }
   return 'An unknown error occurred'
+}
+
+/**
+ * Get a human-readable message for a DEX error name
+ */
+function getDexErrorMessage(errorName: string): string {
+  switch (errorName) {
+    case 'InsufficientLiquidity':
+      return 'Insufficient liquidity in the pool for this swap'
+    case 'InvalidTokenPair':
+      return 'This token pair is not supported for swapping'
+    case 'PoolNotFound':
+      return 'No liquidity pool exists for this token pair'
+    case 'InvalidAmount':
+      return 'Invalid swap amount specified'
+    case 'SlippageExceeded':
+      return 'Price slippage exceeded the maximum tolerance'
+    case 'OrderNotFound':
+      return 'The specified order was not found'
+    case 'Unauthorized':
+      return 'You are not authorized to perform this action'
+    default:
+      return `DEX error: ${errorName}`
+  }
+}
+
+/**
+ * Decode DEX-specific errors from contract reverts
+ * Extracts error signatures and returns user-friendly messages
+ */
+export function decodeDexError(error: unknown): string {
+  if (error instanceof Error) {
+    // Try to extract error signature from viem error message
+    // Viem formats these as "signature: 0x..." or "data: 0x..."
+    const sigMatch = error.message.match(/(?:signature|data):\s*(0x[a-fA-F0-9]{8})/i)
+    if (sigMatch) {
+      const sig = sigMatch[1].toLowerCase()
+      const errorName = DexErrors[sig]
+      if (errorName) {
+        return getDexErrorMessage(errorName)
+      }
+    }
+
+    // Also check for raw hex at the start of error data (common viem pattern)
+    const rawHexMatch = error.message.match(/reverted with.*?(0x[a-fA-F0-9]{8})/i)
+    if (rawHexMatch) {
+      const sig = rawHexMatch[1].toLowerCase()
+      const errorName = DexErrors[sig]
+      if (errorName) {
+        return getDexErrorMessage(errorName)
+      }
+    }
+  }
+
+  // Fall back to generic error handling
+  return getErrorMessage(error)
 }
 
 // ============================================================================

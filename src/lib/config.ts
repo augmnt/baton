@@ -1,7 +1,8 @@
 import { config as dotenvConfig } from 'dotenv'
-import type { Hex } from 'viem'
+import type { Address, Hex } from 'viem'
 import { Networks } from './constants.js'
 import type { BatonConfig } from './types.js'
+import { deriveAddress } from '../modules/wallet.js'
 
 // Load environment variables from .env file
 dotenvConfig()
@@ -118,4 +119,13 @@ export function buildExplorerAddressUrl(address: string): string {
  */
 export function buildExplorerBlockUrl(blockNumber: bigint | number): string {
   return `${getExplorerUrl()}/block/${blockNumber.toString()}`
+}
+
+/**
+ * Get the wallet address derived from the configured private key
+ * @throws ConfigError if TEMPO_PRIVATE_KEY is not set or invalid
+ */
+export function getConfiguredAddress(): Address {
+  const privateKey = getPrivateKey(true) // throws if not configured
+  return deriveAddress(privateKey)
 }

@@ -38,13 +38,13 @@ export const TokenSymbols: Record<Address, string> = {
 export const Networks = {
   mainnet: {
     rpcUrl: 'https://rpc.tempo.xyz',
-    explorerUrl: 'https://explorer.tempo.xyz',
-    chainId: 1, // Update with actual chain ID
+    explorerUrl: 'https://explore.tempo.xyz',
+    chainId: 42429,
   },
   testnet: {
-    rpcUrl: 'https://rpc.testnet.tempo.xyz',
-    explorerUrl: 'https://explorer.testnet.tempo.xyz',
-    chainId: 2, // Update with actual chain ID
+    rpcUrl: 'https://rpc.moderato.tempo.xyz',
+    explorerUrl: 'https://scout.tempo.xyz',
+    chainId: 42431,
   },
 } as const
 
@@ -499,4 +499,18 @@ export const Roles = {
   MINTER_ROLE: '0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6',
   BURNER_ROLE: '0x3c11d16cbaffd01df69ce1c404f6340ee057498f5f00246190ea54220576a848',
   PAUSER_ROLE: '0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a',
+} as const
+
+// ============================================================================
+// DEX Error Signatures
+// ============================================================================
+
+export const DexErrors: Record<string, string> = {
+  '0xaa4bc69a': 'InsufficientLiquidity',
+  '0xd4e8be83': 'InvalidTokenPair',
+  '0x7e273289': 'PoolNotFound',
+  '0xf4d678b8': 'InvalidAmount',
+  '0x13be252b': 'SlippageExceeded',
+  '0x35313244': 'OrderNotFound',
+  '0x82b42900': 'Unauthorized',
 } as const

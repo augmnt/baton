@@ -5,6 +5,7 @@ import { Abis, Contracts, Defaults } from '../lib/constants.js'
 import type { OrderInfo, SwapParams, SwapQuote, TransactionResult } from '../lib/types.js'
 import {
   applySlippage,
+  decodeDexError,
   priceToTick,
   tickToPrice,
   validateAddress,
@@ -28,23 +29,27 @@ export async function getSwapQuote(params: {
 
   validatePositiveAmount(amountIn)
 
-  const amountOut = (await client.readContract({
-    address: Contracts.STABLECOIN_DEX,
-    abi: Abis.stablecoinDex,
-    functionName: 'getQuote',
-    args: [validateAddress(tokenIn), validateAddress(tokenOut), amountIn],
-  })) as bigint
+  try {
+    const amountOut = (await client.readContract({
+      address: Contracts.STABLECOIN_DEX,
+      abi: Abis.stablecoinDex,
+      functionName: 'getQuote',
+      args: [validateAddress(tokenIn), validateAddress(tokenOut), amountIn],
+    })) as bigint
 
-  // Calculate price impact (simplified - would need pool data for accurate calculation)
-  const priceImpact = amountOut > 0n ? Number((amountIn * 10000n) / amountOut - 10000n) / 100 : 0
+    // Calculate price impact (simplified - would need pool data for accurate calculation)
+    const priceImpact = amountOut > 0n ? Number((amountIn * 10000n) / amountOut - 10000n) / 100 : 0
 
-  return {
-    tokenIn: validateAddress(tokenIn),
-    tokenOut: validateAddress(tokenOut),
-    amountIn,
-    amountOut,
-    priceImpact,
-    route: [validateAddress(tokenIn), validateAddress(tokenOut)],
+    return {
+      tokenIn: validateAddress(tokenIn),
+      tokenOut: validateAddress(tokenOut),
+      amountIn,
+      amountOut,
+      priceImpact,
+      route: [validateAddress(tokenIn), validateAddress(tokenOut)],
+    }
+  } catch (error) {
+    throw new Error(decodeDexError(error))
   }
 }
 
@@ -258,12 +263,16 @@ export async function calculateSwapWithSlippage(params: {
 }): Promise<{ amountOut: bigint; minAmountOut: bigint }> {
   const { tokenIn, tokenOut, amountIn, slippageBps = Defaults.SLIPPAGE_BPS } = params
 
-  const quote = await getSwapQuote({ tokenIn, tokenOut, amountIn })
-  const minAmountOut = applySlippage(quote.amountOut, slippageBps)
+  try {
+    const quote = await getSwapQuote({ tokenIn, tokenOut, amountIn })
+    const minAmountOut = applySlippage(quote.amountOut, slippageBps)
 
-  return {
-    amountOut: quote.amountOut,
-    minAmountOut,
+    return {
+      amountOut: quote.amountOut,
+      minAmountOut,
+    }
+  } catch (error) {
+    throw new Error(decodeDexError(error))
   }
 }
 
