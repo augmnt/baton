@@ -17,7 +17,7 @@ CLI toolkit and MCP server for the Tempo blockchain.
 ## Installation
 
 ```bash
-npm install @augmnt/baton
+npm install @augmnt-sh/baton
 ```
 
 Or clone and build:
@@ -48,7 +48,7 @@ Baton uses the following environment variables:
 
 Pass environment variables directly when adding the MCP server:
 ```bash
-claude mcp add baton -e TEMPO_PRIVATE_KEY=0x... -- npx @augmnt/baton mcp
+claude mcp add baton -e TEMPO_PRIVATE_KEY=0x... -- npx @augmnt-sh/baton mcp
 ```
 
 This is the most secure method as the key is stored in Claude's MCP configuration and not exposed in shell history or environment.
@@ -209,28 +209,28 @@ baton mcp
 
 Basic setup (read-only operations):
 ```bash
-claude mcp add baton -- npx @augmnt/baton mcp
+claude mcp add baton -- npx @augmnt-sh/baton mcp
 ```
 
 With private key for write operations:
 ```bash
-claude mcp add baton -e TEMPO_PRIVATE_KEY=0x... -- npx @augmnt/baton mcp
+claude mcp add baton -e TEMPO_PRIVATE_KEY=0x... -- npx @augmnt-sh/baton mcp
 ```
 
 For testnet:
 ```bash
-claude mcp add baton -e TEMPO_NETWORK=testnet -e TEMPO_PRIVATE_KEY=0x... -- npx @augmnt/baton mcp
+claude mcp add baton -e TEMPO_NETWORK=testnet -e TEMPO_PRIVATE_KEY=0x... -- npx @augmnt-sh/baton mcp
 ```
 
 To update configuration, remove and re-add:
 ```bash
 claude mcp remove baton
-claude mcp add baton -e TEMPO_PRIVATE_KEY=0x... -- npx @augmnt/baton mcp
+claude mcp add baton -e TEMPO_PRIVATE_KEY=0x... -- npx @augmnt-sh/baton mcp
 ```
 
 User-level (available in all projects):
 ```bash
-claude mcp add -s user baton -e TEMPO_PRIVATE_KEY=0x... -- npx @augmnt/baton mcp
+claude mcp add -s user baton -e TEMPO_PRIVATE_KEY=0x... -- npx @augmnt-sh/baton mcp
 ```
 
 ### Integration with Claude Desktop
@@ -262,7 +262,7 @@ Or if installed globally via npm:
   "mcpServers": {
     "baton": {
       "command": "npx",
-      "args": ["@augmnt/baton", "mcp"],
+      "args": ["@augmnt-sh/baton", "mcp"],
       "env": {
         "TEMPO_NETWORK": "testnet"
       }
@@ -315,7 +315,7 @@ import {
   transfer,
   getSwapQuote,
   swap,
-} from '@augmnt/baton'
+} from '@augmnt-sh/baton'
 
 // Generate wallet
 const wallet = generateWallet()
@@ -359,7 +359,7 @@ baton token transfer <token> <to> 100.5
 In code, use the smallest unit:
 
 ```typescript
-import { parseAmount, formatAmount } from '@augmnt/baton'
+import { parseAmount, formatAmount } from '@augmnt-sh/baton'
 
 const amount = parseAmount('100.5') // 100500000n
 const formatted = formatAmount(100500000n) // "100.5"
@@ -382,7 +382,7 @@ baton token transfer <token> <to> 100 --memo "0x..."
 DEX prices use tick values:
 
 ```typescript
-import { priceToTick, tickToPrice } from '@augmnt/baton'
+import { priceToTick, tickToPrice } from '@augmnt-sh/baton'
 
 const tick = priceToTick(1.0001) // Get tick for price
 const price = tickToPrice(100)   // Get price from tick
