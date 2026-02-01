@@ -31,21 +31,46 @@ npm run build
 
 ## Configuration
 
-Create a `.env` file or set environment variables:
+### Environment Variables
 
+Baton uses the following environment variables:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `TEMPO_PRIVATE_KEY` | For write ops | Private key for signing transactions |
+| `TEMPO_RPC_URL` | No | Custom RPC endpoint (defaults to Tempo mainnet) |
+| `TEMPO_EXPLORER_URL` | No | Custom block explorer URL |
+| `TEMPO_NETWORK` | No | `mainnet` (default) or `testnet` |
+
+### Configuration Methods
+
+**Option 1: MCP Server Config (Recommended for Claude)**
+
+Pass environment variables directly when adding the MCP server:
 ```bash
-# Private key for signing transactions (required for write operations)
+claude mcp add baton -e TEMPO_PRIVATE_KEY=0x... -- npx baton mcp
+```
+
+This is the most secure method as the key is stored in Claude's MCP configuration and not exposed in shell history or environment.
+
+**Option 2: Shell Profile**
+
+Add to `~/.zshrc` or `~/.bashrc`:
+```bash
+export TEMPO_PRIVATE_KEY=0x...
+export TEMPO_NETWORK=mainnet
+```
+
+**Option 3: .env File**
+
+Create a `.env` file in the working directory:
+```bash
 TEMPO_PRIVATE_KEY=0x...
-
-# RPC endpoint (defaults to Tempo Moderato mainnet)
 TEMPO_RPC_URL=https://rpc.tempo.xyz
-
-# Block explorer URL
-TEMPO_EXPLORER_URL=https://explorer.tempo.xyz
-
-# Network: mainnet or testnet
 TEMPO_NETWORK=mainnet
 ```
+
+Note: For MCP servers, the `.env` file must be in the directory where Claude is running (your project directory), not the baton installation directory.
 
 ## CLI Usage
 
@@ -182,8 +207,30 @@ baton mcp
 
 ### Integration with Claude Code
 
+Basic setup (read-only operations):
 ```bash
 claude mcp add baton -- npx baton mcp
+```
+
+With private key for write operations:
+```bash
+claude mcp add baton -e TEMPO_PRIVATE_KEY=0x... -- npx baton mcp
+```
+
+For testnet:
+```bash
+claude mcp add baton -e TEMPO_NETWORK=testnet -e TEMPO_PRIVATE_KEY=0x... -- npx baton mcp
+```
+
+To update configuration, remove and re-add:
+```bash
+claude mcp remove baton
+claude mcp add baton -e TEMPO_PRIVATE_KEY=0x... -- npx baton mcp
+```
+
+User-level (available in all projects):
+```bash
+claude mcp add -s user baton -e TEMPO_PRIVATE_KEY=0x... -- npx baton mcp
 ```
 
 ### Integration with Claude Desktop
@@ -356,6 +403,7 @@ const price = tickToPrice(100)   // Get price from tick
 | STABLECOIN_DEX | `0xdec0000000000000000000000000000000000000` |
 | FEE_MANAGER | `0xfeec000000000000000000000000000000000000` |
 | ACCOUNT_KEYCHAIN | `0xAAAAAAAA00000000000000000000000000000000` |
+| MULTICALL3 | `0xcA11bde05977b3631167028862bE2a173976CA11` |
 
 ## Security
 
