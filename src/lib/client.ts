@@ -13,6 +13,7 @@ import {
 } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { loadConfig, getRpcUrl } from './config.js'
+import { Contracts } from './constants.js'
 
 // ============================================================================
 // Chain Definition
@@ -38,6 +39,11 @@ export const tempoModerato: Chain = {
       url: 'https://explorer.tempo.xyz',
     },
   },
+  contracts: {
+    multicall3: {
+      address: Contracts.MULTICALL3,
+    },
+  },
 }
 
 // Tempo testnet chain definition
@@ -61,6 +67,11 @@ export const tempoTestnet: Chain = {
     },
   },
   testnet: true,
+  contracts: {
+    multicall3: {
+      address: Contracts.MULTICALL3,
+    },
+  },
 }
 
 // ============================================================================
