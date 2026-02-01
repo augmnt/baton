@@ -1,5 +1,5 @@
 {
-  "name": "baton",
+  "name": "@augmnt/baton",
   "version": "0.1.0",
   "description": "CLI toolkit and MCP server for the Tempo blockchain",
   "type": "module",
