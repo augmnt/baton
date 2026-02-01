@@ -4,7 +4,7 @@ CLI toolkit and MCP server for the Tempo blockchain.
 
 ## Features
 
-- **~95 MCP Tools** - Complete blockchain operations accessible via Model Context Protocol
+- **102 MCP Tools** - Complete blockchain operations accessible via Model Context Protocol
 - **CLI Interface** - Command-line interface for all operations
 - **TIP-20 Token Operations** - Transfer, approve, mint, burn, and role management
 - **DEX Integration** - Swap, limit orders, and price calculations
@@ -186,20 +186,58 @@ baton mcp
 claude mcp add baton -- npx baton mcp
 ```
 
+### Integration with Claude Desktop
+
+Add the following to your Claude Desktop configuration file:
+
+**macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "baton": {
+      "command": "node",
+      "args": ["/path/to/baton/dist/src/mcp-server.js"],
+      "env": {
+        "TEMPO_NETWORK": "testnet",
+        "TEMPO_PRIVATE_KEY": "0x..."
+      }
+    }
+  }
+}
+```
+
+Or if installed globally via npm:
+
+```json
+{
+  "mcpServers": {
+    "baton": {
+      "command": "npx",
+      "args": ["baton", "mcp"],
+      "env": {
+        "TEMPO_NETWORK": "testnet"
+      }
+    }
+  }
+}
+```
+
 ### Available Tools
 
-The MCP server provides ~95 tools organized by domain:
+The MCP server provides 102 tools organized by domain:
 
 | Domain | Tools | Description |
 |--------|-------|-------------|
 | Chain | 5 | Block and transaction queries |
 | Wallet | 6 | Wallet generation and derivation |
 | Account | 7 | Balance and account info |
-| Token | 12 | TIP-20 token operations |
+| Token | 11 | TIP-20 token operations |
 | DEX | 10 | Swap and order management |
 | Fees | 8 | Fee token management |
 | Fee AMM | 5 | Fee liquidity operations |
-| Keychain | 9 | Access key management |
+| Keychain | 8 | Access key management |
 | Policy | 8 | Transfer policy management |
 | Rewards | 7 | Rewards distribution |
 | History | 4 | Transfer history |

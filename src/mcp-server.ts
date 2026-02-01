@@ -16,10 +16,11 @@ const server = new McpServer({
 // Register all tools
 registerAllTools(server)
 
-// Register resources
+// Register resources using the correct signature: (name, uri, metadata, callback)
 server.resource(
+  'known-tokens',
   'tempo://tokens/known',
-  'Known Tempo tokens with their addresses',
+  { description: 'Known Tempo tokens with their addresses' },
   async () => ({
     contents: [
       {
@@ -32,8 +33,9 @@ server.resource(
 )
 
 server.resource(
+  'contract-addresses',
   'tempo://contracts/addresses',
-  'Tempo contract addresses',
+  { description: 'Tempo contract addresses' },
   async () => ({
     contents: [
       {
@@ -46,8 +48,9 @@ server.resource(
 )
 
 server.resource(
+  'tip20-abi',
   'tempo://contracts/abis/tip20',
-  'TIP-20 token ABI',
+  { description: 'TIP-20 token ABI' },
   async () => ({
     contents: [
       {
@@ -60,8 +63,9 @@ server.resource(
 )
 
 server.resource(
+  'network-config',
   'tempo://config/network',
-  'Current network configuration',
+  { description: 'Current network configuration' },
   async () => ({
     contents: [
       {

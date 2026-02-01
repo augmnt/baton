@@ -1,4 +1,6 @@
 import { Command } from 'commander'
+import { fileURLToPath } from 'url'
+import { dirname, resolve } from 'path'
 
 import {
   createWalletCommand,
@@ -56,9 +58,16 @@ export function createCli(): Command {
     .action(async () => {
       // Import and start MCP server
       const { spawn } = await import('child_process')
-      const mcpProcess = spawn('node', ['dist/mcp-server.js'], {
+
+      // Resolve absolute path to mcp-server.js using import.meta.url
+      // __dirname points to dist/src/cli/ (where compiled index.js lives)
+      // mcp-server.js is at dist/src/mcp-server.js (one level up)
+      const __filename = fileURLToPath(import.meta.url)
+      const __dirname = dirname(__filename)
+      const mcpServerPath = resolve(__dirname, '../mcp-server.js')
+
+      const mcpProcess = spawn('node', [mcpServerPath], {
         stdio: 'inherit',
-        cwd: process.cwd(),
       })
 
       mcpProcess.on('error', (err) => {
