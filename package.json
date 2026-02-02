@@ -1,6 +1,6 @@
 {
   "name": "@augmnt-sh/baton",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "CLI toolkit and MCP server for the Tempo blockchain",
   "type": "module",
   "main": "dist/lib/index.js",
