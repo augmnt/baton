@@ -11,8 +11,7 @@ import {
   createFaucetCommand,
 } from './commands/index.js'
 import { getBanner, colors } from './branding.js'
-
-const VERSION = '0.1.2'
+import { getVersion } from '../lib/config.js'
 
 export function createCli(): Command {
   const program = new Command()
@@ -20,7 +19,7 @@ export function createCli(): Command {
   program
     .name('baton')
     .description(`${getBanner()}\n\nCLI toolkit for the Tempo blockchain`)
-    .version(VERSION)
+    .version(getVersion())
     .configureOutput({
       writeOut: (str) => process.stdout.write(str),
       writeErr: (str) => process.stderr.write(str),

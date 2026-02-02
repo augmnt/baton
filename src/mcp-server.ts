@@ -5,12 +5,12 @@ import { z } from 'zod'
 
 import { registerAllTools } from './mcp/tools/index.js'
 import { KnownTokens, Contracts, Abis } from './lib/constants.js'
-import { getNetwork, getRpcUrl, getExplorerUrl } from './lib/config.js'
+import { getNetwork, getRpcUrl, getExplorerUrl, getVersion } from './lib/config.js'
 
 // Create the MCP server
 const server = new McpServer({
   name: 'baton',
-  version: '0.1.2',
+  version: getVersion(),
 })
 
 // Register all tools

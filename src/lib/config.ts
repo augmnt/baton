@@ -1,8 +1,19 @@
+import { createRequire } from 'module'
 import { config as dotenvConfig } from 'dotenv'
 import type { Address, Hex } from 'viem'
 import { Networks } from './constants.js'
 import type { BatonConfig } from './types.js'
 import { deriveAddress } from '../modules/wallet.js'
+
+const require = createRequire(import.meta.url)
+const packageJson = require('../../../package.json')
+
+/**
+ * Get the package version from package.json
+ */
+export function getVersion(): string {
+  return packageJson.version
+}
 
 // Load environment variables from .env file
 dotenvConfig()
