@@ -10,7 +10,7 @@ import { getNetwork, getRpcUrl, getExplorerUrl } from './lib/config.js'
 // Create the MCP server
 const server = new McpServer({
   name: 'baton',
-  version: '0.1.0',
+  version: '0.1.2',
 })
 
 // Register all tools

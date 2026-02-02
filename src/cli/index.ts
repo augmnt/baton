@@ -12,7 +12,7 @@ import {
 } from './commands/index.js'
 import { getBanner, colors } from './branding.js'
 
-const VERSION = '0.1.0'
+const VERSION = '0.1.2'
 
 export function createCli(): Command {
   const program = new Command()
