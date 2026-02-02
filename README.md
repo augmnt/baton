@@ -16,14 +16,32 @@ CLI toolkit and MCP server for the Tempo blockchain.
 
 ## Installation
 
+### CLI Usage (Recommended)
+
+Install globally to use the `baton` command anywhere:
+
+```bash
+npm install -g @augmnt-sh/baton
+```
+
+Or run directly with npx (no installation required):
+
+```bash
+npx @augmnt-sh/baton <command>
+```
+
+### Programmatic Usage
+
+Install as a project dependency:
+
 ```bash
 npm install @augmnt-sh/baton
 ```
 
-Or clone and build:
+### From Source
 
 ```bash
-git clone <repo>
+git clone https://github.com/augmnt/baton.git
 cd baton
 npm install
 npm run build
