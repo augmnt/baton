@@ -43,7 +43,7 @@ export const Networks = {
   },
   testnet: {
     rpcUrl: 'https://rpc.moderato.tempo.xyz',
-    explorerUrl: 'https://scout.tempo.xyz',
+    explorerUrl: 'https://explore.tempo.xyz',
     chainId: 42431,
   },
 } as const

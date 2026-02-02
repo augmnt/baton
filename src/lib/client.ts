@@ -57,13 +57,13 @@ export const tempoTestnet: Chain = {
   },
   rpcUrls: {
     default: {
-      http: ['https://rpc.testnet.tempo.xyz'],
+      http: ['https://rpc.moderato.tempo.xyz'],
     },
   },
   blockExplorers: {
     default: {
       name: 'Tempo Testnet Explorer',
-      url: 'https://explorer.testnet.tempo.xyz',
+      url: 'https://explore.tempo.xyz',
     },
   },
   testnet: true,
