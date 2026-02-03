@@ -4,7 +4,7 @@ import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import type { Hex } from 'viem'
 import * as wallet from '../../modules/wallet.js'
-import { isFaucetAvailable, fundAddress } from '../../modules/faucet.js'
+import { fundAddress } from '../../modules/faucet.js'
 import { colors, getBanner } from '../branding.js'
 
 interface EnvVars {
@@ -227,34 +227,29 @@ export function createInitCommand(): Command {
         // Set network for faucet check
         process.env.TEMPO_NETWORK = 'testnet'
 
-        try {
-          const faucetAvailable = await isFaucetAvailable()
+        const { fundWallet } = await prompts({
+          type: 'confirm',
+          name: 'fundWallet',
+          message: 'Fund wallet from testnet faucet? (Receives 1M of each token)',
+          initial: true,
+        })
 
-          if (faucetAvailable) {
-            const { fundWallet } = await prompts({
-              type: 'confirm',
-              name: 'fundWallet',
-              message: 'Fund wallet from testnet faucet?',
-              initial: true,
-            })
-
-            if (fundWallet) {
-              console.log(colors.info('\nRequesting funds from faucet...'))
-              try {
-                const result = await fundAddress(address as Hex)
-                if (result.success) {
-                  console.log(colors.success('✓ Funded successfully!'))
-                  console.log(colors.dim('  Transaction: ') + colors.accent(result.transactionHash))
-                } else {
-                  console.log(colors.warning('Faucet request failed. You can try again later with: baton faucet fund ' + address))
-                }
-              } catch {
-                console.log(colors.warning('Faucet request failed. You can try again later with: baton faucet fund ' + address))
+        if (fundWallet) {
+          console.log(colors.info('\nRequesting funds from faucet...'))
+          try {
+            const result = await fundAddress(address as Hex)
+            if (result.success) {
+              console.log(colors.success('✓ Funded successfully!'))
+              console.log(colors.dim('  Transactions:'))
+              for (const hash of result.transactionHashes) {
+                console.log(colors.accent('    ' + hash))
               }
+            } else {
+              console.log(colors.warning('Faucet request failed. You can try again later with: baton faucet fund ' + address))
             }
+          } catch {
+            console.log(colors.warning('Faucet request failed. You can try again later with: baton faucet fund ' + address))
           }
-        } catch {
-          // Faucet check failed, skip silently
         }
       }
 

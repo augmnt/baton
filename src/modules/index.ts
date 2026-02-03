@@ -96,8 +96,6 @@ export {
 
 export {
   fundAddress,
-  isFaucetAvailable,
-  getFaucetInfo,
 } from './faucet.js'
 
 export {

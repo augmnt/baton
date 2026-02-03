@@ -30,6 +30,12 @@ export interface TransactionResult {
   explorerUrl: string
 }
 
+export interface FaucetResult {
+  success: boolean
+  transactionHashes: `0x${string}`[]
+  explorerUrls: string[]
+}
+
 // ============================================================================
 // Account Types
 // ============================================================================

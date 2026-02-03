@@ -29,6 +29,14 @@ export const KnownTokens = {
 
 export const KnownTokensList: Address[] = Object.values(KnownTokens)
 
+// Faucet tokens - these are funded by the testnet faucet (1M each)
+export const FaucetTokens = [
+  { name: 'pathUSD', address: KnownTokens.pathUSD },
+  { name: 'AlphaUSD', address: KnownTokens.AlphaUSD },
+  { name: 'BetaUSD', address: KnownTokens.BetaUSD },
+  { name: 'ThetaUSD', address: KnownTokens.ThetaUSD },
+] as const
+
 export const TokenSymbols: Record<Address, string> = {
   [KnownTokens.pathUSD]: 'pathUSD',
   [KnownTokens.AlphaUSD]: 'AlphaUSD',
