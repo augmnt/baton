@@ -129,9 +129,9 @@ Baton uses the following environment variables:
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `TEMPO_PRIVATE_KEY` | For write ops | Private key for signing transactions |
-| `TEMPO_RPC_URL` | No | Custom RPC endpoint (defaults to Tempo mainnet) |
+| `TEMPO_RPC_URL` | No | Custom RPC endpoint (defaults to Tempo testnet) |
 | `TEMPO_EXPLORER_URL` | No | Custom block explorer URL |
-| `TEMPO_NETWORK` | No | `mainnet` or `testnet` (default) |
+| `TEMPO_NETWORK` | No | `mainnet` or `testnet` (default: testnet) |
 
 ### Configuration Methods
 
@@ -149,7 +149,7 @@ This is the most secure method as the key is stored in Claude's MCP configuratio
 Add to `~/.zshrc` or `~/.bashrc`:
 ```bash
 export TEMPO_PRIVATE_KEY=0x...
-export TEMPO_NETWORK=mainnet
+export TEMPO_NETWORK=testnet
 ```
 
 **Option 3: .env File**
@@ -157,8 +157,8 @@ export TEMPO_NETWORK=mainnet
 Create a `.env` file in the working directory:
 ```bash
 TEMPO_PRIVATE_KEY=0x...
-TEMPO_RPC_URL=https://rpc.tempo.xyz
-TEMPO_NETWORK=mainnet
+TEMPO_RPC_URL=https://rpc.moderato.tempo.xyz
+TEMPO_NETWORK=testnet
 ```
 
 Note: For MCP servers, the `.env` file must be in the directory where Claude is running (your project directory), not the baton installation directory.

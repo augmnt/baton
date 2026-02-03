@@ -70,7 +70,7 @@ export function createConfigCommand(): Command {
 
       console.log(colors.accent.bold('\nCurrent Configuration\n'))
 
-      const network = vars.TEMPO_NETWORK || 'mainnet (default)'
+      const network = vars.TEMPO_NETWORK || 'testnet (default)'
       const rpcUrl = vars.TEMPO_RPC_URL || '(default)'
       const hasKey = !!vars.TEMPO_PRIVATE_KEY
 

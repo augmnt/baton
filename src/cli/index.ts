@@ -29,7 +29,7 @@ export function createCli(): Command {
 
   // Global options
   program
-    .option('--network <network>', 'Network to use (mainnet, testnet)', 'mainnet')
+    .option('--network <network>', 'Network to use (mainnet, testnet)', 'testnet')
     .option('--rpc <url>', 'Custom RPC URL')
     .option('-v, --verbose', 'Enable verbose output')
 

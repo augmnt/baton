@@ -80,13 +80,15 @@ export function resolveTokenAddress(symbolOrAddress: string): Address {
 
 export const Networks = {
   mainnet: {
+    // NOTE: Mainnet is not yet launched. These are placeholder values.
     rpcUrl: 'https://rpc.tempo.xyz',
-    explorerUrl: 'https://explorer.tempo.xyz', // May not exist yet
+    explorerUrl: 'https://explorer.tempo.xyz',
     chainId: 42429,
   },
   testnet: {
+    // Tempo Testnet (Moderato) - the currently active network
     rpcUrl: 'https://rpc.moderato.tempo.xyz',
-    explorerUrl: 'https://explore.tempo.xyz', // The actual working testnet explorer
+    explorerUrl: 'https://explore.tempo.xyz',
     chainId: 42431,
   },
 } as const

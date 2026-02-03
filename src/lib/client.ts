@@ -19,10 +19,11 @@ import { Contracts } from './constants.js'
 // Chain Definition
 // ============================================================================
 
-// Tempo Moderato mainnet chain definition
-export const tempoModerato: Chain = {
+// Tempo Mainnet chain definition
+// NOTE: Mainnet is not yet launched. These are placeholder values.
+export const tempoMainnet: Chain = {
   id: 42429,
-  name: 'Tempo Moderato',
+  name: 'Tempo Mainnet',
   nativeCurrency: {
     decimals: 6,
     name: 'pathUSD',
@@ -117,7 +118,7 @@ const RPC_CONFIG = {
 export function createTempoPublicClient(options: CreateClientOptions = {}): TempoClient {
   const config = loadConfig()
   const rpcUrl = options.rpcUrl || config.rpcUrl || getRpcUrl()
-  const chain = options.chain || (config.network === 'testnet' ? tempoTestnet : tempoModerato)
+  const chain = options.chain || (config.network === 'testnet' ? tempoTestnet : tempoMainnet)
 
   return createClient({
     chain,
@@ -139,7 +140,7 @@ export function createTempoWalletClient(options: CreateClientOptions = {}): Temp
   const config = loadConfig(true) // Require private key
   const rpcUrl = options.rpcUrl || config.rpcUrl || getRpcUrl()
   const privateKey = options.privateKey || config.privateKey
-  const chain = options.chain || (config.network === 'testnet' ? tempoTestnet : tempoModerato)
+  const chain = options.chain || (config.network === 'testnet' ? tempoTestnet : tempoMainnet)
 
   if (!privateKey) {
     throw new Error('Private key is required for wallet client')

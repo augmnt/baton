@@ -15,7 +15,7 @@ describe('chain', () => {
     getGasPrice: vi.fn(),
     waitForTransactionReceipt: vi.fn(),
     estimateGas: vi.fn(),
-    chain: { name: 'Tempo Moderato' },
+    chain: { name: 'Tempo Mainnet' },
   }
 
   beforeEach(() => {
@@ -163,7 +163,7 @@ describe('chain', () => {
       const info = await chain.getChainInfo()
 
       expect(info.chainId).toBe(42429)
-      expect(info.name).toBe('Tempo Moderato')
+      expect(info.name).toBe('Tempo Mainnet')
       expect(info.blockNumber).toBe(12345678n)
       expect(info.gasPrice).toBe(1000000000n)
     })
