@@ -57,12 +57,18 @@ export function registerRewardsTools(server: McpServer) {
           account as Address
         )
 
-        const result: Array<{ token: string; claimable: string; claimableFormatted: string }> = []
-        claimables.forEach((amount, token) => {
+        const result: Array<{
+          token: string
+          claimable: string
+          claimableFormatted: string
+          queryStatus: string
+        }> = []
+        claimables.forEach((rewardResult, token) => {
           result.push({
             token,
-            claimable: amount.toString(),
-            claimableFormatted: formatAmount(amount),
+            claimable: rewardResult.amount.toString(),
+            claimableFormatted: formatAmount(rewardResult.amount),
+            queryStatus: rewardResult.queryStatus,
           })
         })
 
@@ -114,13 +120,14 @@ export function registerRewardsTools(server: McpServer) {
   // Set reward recipient
   server.tool(
     'tempo_setRewardRecipient',
-    'Redirect rewards to another address',
+    'Redirect rewards from a token to another address',
     {
+      token: z.string().describe('Token contract address'),
       recipient: z.string().describe('Address to receive rewards'),
     },
-    async ({ recipient }) => {
+    async ({ token, recipient }) => {
       try {
-        const result = await rewards.setRewardRecipient(recipient as Address)
+        const result = await rewards.setRewardRecipient(token as Address, recipient as Address)
         return {
           content: [
             {
@@ -299,12 +306,18 @@ export function registerRewardsTools(server: McpServer) {
           account
         )
 
-        const result: Array<{ token: string; claimable: string; claimableFormatted: string }> = []
-        claimables.forEach((amount, token) => {
+        const result: Array<{
+          token: string
+          claimable: string
+          claimableFormatted: string
+          queryStatus: string
+        }> = []
+        claimables.forEach((rewardResult, token) => {
           result.push({
             token,
-            claimable: amount.toString(),
-            claimableFormatted: formatAmount(amount),
+            claimable: rewardResult.amount.toString(),
+            claimableFormatted: formatAmount(rewardResult.amount),
+            queryStatus: rewardResult.queryStatus,
           })
         })
 

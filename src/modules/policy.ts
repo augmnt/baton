@@ -1,10 +1,21 @@
 import type { Address, Hex } from 'viem'
-import { encodeAbiParameters, parseAbiParameters } from 'viem'
+import { decodeAbiParameters, decodeEventLog, encodeAbiParameters, parseAbiParameters } from 'viem'
 import { getPublicClient, getWalletClient } from '../lib/client.js'
 import { buildExplorerTxUrl } from '../lib/config.js'
 import { Abis, Contracts } from '../lib/constants.js'
 import type { PolicyRule, PolicyRuleType, TransactionResult } from '../lib/types.js'
 import { validateAddress } from '../lib/utils.js'
+
+// PolicyCreated event ABI for parsing logs
+const PolicyCreatedEvent = {
+  type: 'event',
+  name: 'PolicyCreated',
+  inputs: [
+    { name: 'policyId', type: 'uint256', indexed: true },
+    { name: 'owner', type: 'address', indexed: true },
+    { name: 'name', type: 'string', indexed: false },
+  ],
+} as const
 
 // ============================================================================
 // Policy Rule Encoding
@@ -16,6 +27,14 @@ const RULE_TYPE_IDS: Record<PolicyRuleType, number> = {
   ALLOWED_RECIPIENTS: 3,
   BLOCKED_RECIPIENTS: 4,
   TIME_LOCK: 5,
+}
+
+const RULE_TYPE_NAMES: Record<number, PolicyRuleType> = {
+  1: 'MAX_AMOUNT',
+  2: 'DAILY_LIMIT',
+  3: 'ALLOWED_RECIPIENTS',
+  4: 'BLOCKED_RECIPIENTS',
+  5: 'TIME_LOCK',
 }
 
 /**
@@ -41,9 +60,38 @@ export function encodePolicyRules(rules: PolicyRule[]): Hex {
 /**
  * Decode policy rules from bytes
  */
-export function decodePolicyRules(_data: Hex): PolicyRule[] {
-  // Would need proper decoding logic
-  return []
+export function decodePolicyRules(data: Hex): PolicyRule[] {
+  if (!data || data === '0x' || data.length < 4) {
+    return []
+  }
+
+  try {
+    const decoded = decodeAbiParameters(
+      parseAbiParameters('(uint8 typeId, uint256 value)[]'),
+      data
+    )
+
+    const rulesArray = decoded[0] as Array<{ typeId: number; value: bigint }>
+
+    return rulesArray.map((rule) => {
+      const ruleType = RULE_TYPE_NAMES[rule.typeId]
+      if (!ruleType) {
+        throw new Error(`Unknown policy rule type ID: ${rule.typeId}`)
+      }
+
+      // For address-based rules (ALLOWED_RECIPIENTS, BLOCKED_RECIPIENTS),
+      // convert the value back to an address
+      if (ruleType === 'ALLOWED_RECIPIENTS' || ruleType === 'BLOCKED_RECIPIENTS') {
+        const addressHex = `0x${rule.value.toString(16).padStart(40, '0')}` as Address
+        return { ruleType, value: addressHex }
+      }
+
+      return { ruleType, value: rule.value }
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    throw new Error(`Failed to decode policy rules: ${message}`)
+  }
 }
 
 // ============================================================================
@@ -75,8 +123,13 @@ export async function getPolicy(policyId: bigint): Promise<{
     }
 
     return { name, owner, rules }
-  } catch {
-    return null
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    // Policy not found is a valid case - return null
+    if (message.includes('execution reverted')) {
+      return null
+    }
+    throw new Error(`Failed to get policy: ${message}`)
   }
 }
 
@@ -95,8 +148,13 @@ export async function getTransferPolicy(token: Address): Promise<bigint> {
     })) as bigint
 
     return policyId
-  } catch {
-    return 0n
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    // Token not having a policy is valid - return 0
+    if (message.includes('execution reverted')) {
+      return 0n
+    }
+    throw new Error(`Failed to get transfer policy: ${message}`)
   }
 }
 
@@ -133,8 +191,23 @@ export async function createPolicy(params: {
 
   const receipt = await client.waitForTransactionReceipt({ hash })
 
-  // Parse policy ID from logs
+  // Parse policy ID from PolicyCreated event logs
   let policyId: bigint | undefined
+  for (const log of receipt.logs) {
+    try {
+      const decoded = decodeEventLog({
+        abi: [PolicyCreatedEvent],
+        data: log.data,
+        topics: log.topics,
+      })
+      if (decoded.eventName === 'PolicyCreated') {
+        policyId = (decoded.args as { policyId: bigint }).policyId
+        break
+      }
+    } catch {
+      // Not a PolicyCreated event, continue
+    }
+  }
 
   return {
     success: receipt.status === 'success',

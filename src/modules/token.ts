@@ -190,18 +190,27 @@ export async function transfer(params: TransferParams): Promise<TransactionResul
 /**
  * Batch transfer tokens to multiple addresses
  */
-export async function batchTransfer(params: BatchTransferParams): Promise<TransactionResult> {
+export async function batchTransfer(params: BatchTransferParams): Promise<TransactionResult & {
+  allTransactionHashes: Hash[]
+  failedTransfers: number[]
+}> {
   const client = getWalletClient()
   const { token, transfers } = params
 
-  // For batch transfers, we'll need to execute multiple transactions
-  // or use a batch contract if available
-  // For now, we'll execute sequentially
+  // Validate transfers array is not empty
+  if (transfers.length === 0) {
+    throw new Error('No transfers provided')
+  }
+
   const validToken = validateAddress(token)
 
-  // Prepare all transfer calls
+  // Execute transfers sequentially and wait for each receipt to avoid race conditions
   const hashes: Hash[] = []
-  for (const t of transfers) {
+  const failedTransfers: number[] = []
+  let lastSuccessfulReceipt: Awaited<ReturnType<typeof client.waitForTransactionReceipt>> | null = null
+
+  for (let i = 0; i < transfers.length; i++) {
+    const t = transfers[i]
     validatePositiveAmount(t.amount)
 
     let hash: Hash
@@ -221,17 +230,27 @@ export async function batchTransfer(params: BatchTransferParams): Promise<Transa
       })
     }
     hashes.push(hash)
+
+    // Wait for each transaction receipt before proceeding to next
+    const receipt = await client.waitForTransactionReceipt({ hash })
+    if (receipt.status !== 'success') {
+      failedTransfers.push(i)
+    } else {
+      lastSuccessfulReceipt = receipt
+    }
   }
 
-  // Wait for the last transaction
+  // Use the last hash and receipt for the result
   const lastHash = hashes[hashes.length - 1]
-  const receipt = await client.waitForTransactionReceipt({ hash: lastHash })
+  const finalReceipt = lastSuccessfulReceipt || await client.waitForTransactionReceipt({ hash: lastHash })
 
   return {
-    success: receipt.status === 'success',
+    success: failedTransfers.length === 0,
     transactionHash: lastHash,
-    blockNumber: receipt.blockNumber,
+    blockNumber: finalReceipt.blockNumber,
     explorerUrl: buildExplorerTxUrl(lastHash),
+    allTransactionHashes: hashes,
+    failedTransfers,
   }
 }
 
@@ -241,6 +260,8 @@ export async function batchTransfer(params: BatchTransferParams): Promise<Transa
 export async function approve(params: ApprovalParams): Promise<TransactionResult> {
   const client = getWalletClient()
   const { token, spender, amount } = params
+
+  validatePositiveAmount(amount, 'approval amount')
 
   const hash = await client.writeContract({
     address: validateAddress(token),

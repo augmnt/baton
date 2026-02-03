@@ -1,7 +1,8 @@
 import type { Address } from 'viem'
+import { decodeEventLog } from 'viem'
 import { getPublicClient, getWalletClient } from '../lib/client.js'
 import { buildExplorerTxUrl } from '../lib/config.js'
-import { Abis, Contracts } from '../lib/constants.js'
+import { Abis } from '../lib/constants.js'
 import type { RewardDistribution, TransactionResult } from '../lib/types.js'
 import { validateAddress, validatePositiveAmount } from '../lib/utils.js'
 
@@ -10,26 +11,42 @@ import { validateAddress, validatePositiveAmount } from '../lib/utils.js'
 // ============================================================================
 
 /**
- * Get claimable rewards for an account
+ * Get claimable rewards for an account from a token contract
+ * Note: Rewards are integrated directly into TIP-20 token contracts
  */
 export async function getClaimableRewards(
   token: Address,
   account: Address
 ): Promise<bigint> {
   const client = getPublicClient()
+  const validToken = validateAddress(token)
+  const validAccount = validateAddress(account)
 
   try {
     const claimable = (await client.readContract({
-      address: Contracts.REWARDS_DISTRIBUTOR,
-      abi: Abis.rewardsDistributor,
-      functionName: 'getClaimable',
-      args: [validateAddress(token), validateAddress(account)],
+      address: validToken,
+      abi: Abis.tip20Rewards,
+      functionName: 'getClaimableRewards',
+      args: [validAccount],
     })) as bigint
 
     return claimable
-  } catch {
-    return 0n
+  } catch (error) {
+    // If the function doesn't exist, the token may not support rewards
+    const message = error instanceof Error ? error.message : String(error)
+    if (message.includes('execution reverted') || message.includes('not a function')) {
+      // Token doesn't support rewards - return 0 (valid case, not an error)
+      return 0n
+    }
+    // Propagate unexpected errors
+    throw new Error(`Failed to get claimable rewards: ${message}`)
   }
+}
+
+// Result type for claimable rewards with query status
+export interface ClaimableRewardsResult {
+  amount: bigint
+  queryStatus: 'success' | 'failed' | 'not_supported'
 }
 
 /**
@@ -38,24 +55,36 @@ export async function getClaimableRewards(
 export async function getClaimableRewardsMulti(
   tokens: Address[],
   account: Address
-): Promise<Map<Address, bigint>> {
+): Promise<Map<Address, ClaimableRewardsResult>> {
   const client = getPublicClient()
   const validAccount = validateAddress(account)
 
   const results = await client.multicall({
     contracts: tokens.map((token) => ({
-      address: Contracts.REWARDS_DISTRIBUTOR,
-      abi: Abis.rewardsDistributor,
-      functionName: 'getClaimable',
-      args: [validateAddress(token), validAccount],
+      address: validateAddress(token),
+      abi: Abis.tip20Rewards,
+      functionName: 'getClaimableRewards',
+      args: [validAccount],
     })),
   })
 
-  const claimables = new Map<Address, bigint>()
+  const claimables = new Map<Address, ClaimableRewardsResult>()
   for (let i = 0; i < tokens.length; i++) {
     const result = results[i]
-    const amount = result.status === 'success' ? (result.result as bigint) : 0n
-    claimables.set(validateAddress(tokens[i]), amount)
+    if (result.status === 'success') {
+      claimables.set(validateAddress(tokens[i]), {
+        amount: result.result as bigint,
+        queryStatus: 'success',
+      })
+    } else {
+      // Distinguish between "not supported" (revert) and actual failures
+      const errorMsg = result.error?.message || ''
+      const isNotSupported = errorMsg.includes('execution reverted') || errorMsg.includes('not a function')
+      claimables.set(validateAddress(tokens[i]), {
+        amount: 0n,
+        queryStatus: isNotSupported ? 'not_supported' : 'failed',
+      })
+    }
   }
 
   return claimables
@@ -79,14 +108,19 @@ export async function hasClaimableRewards(
 /**
  * Set reward recipient (redirect rewards to another address)
  */
-export async function setRewardRecipient(recipient: Address): Promise<TransactionResult> {
+export async function setRewardRecipient(
+  token: Address,
+  recipient: Address
+): Promise<TransactionResult> {
   const client = getWalletClient()
+  const validToken = validateAddress(token)
+  const validRecipient = validateAddress(recipient)
 
   const hash = await client.writeContract({
-    address: Contracts.REWARDS_DISTRIBUTOR,
-    abi: Abis.rewardsDistributor,
+    address: validToken,
+    abi: Abis.tip20Rewards,
     functionName: 'setRewardRecipient',
-    args: [validateAddress(recipient)],
+    args: [validRecipient],
   })
 
   const receipt = await client.waitForTransactionReceipt({ hash })
@@ -101,12 +135,14 @@ export async function setRewardRecipient(recipient: Address): Promise<Transactio
 
 /**
  * Distribute rewards to multiple recipients
+ * Note: This calls the token contract's distributeRewards method
  */
 export async function distributeReward(
   params: RewardDistribution
 ): Promise<TransactionResult> {
   const client = getWalletClient()
   const { token, recipients, amounts } = params
+  const validToken = validateAddress(token)
 
   // Validate inputs
   if (recipients.length !== amounts.length) {
@@ -117,29 +153,43 @@ export async function distributeReward(
     throw new Error('Must have at least one recipient')
   }
 
+  // Validate all recipient addresses BEFORE any transactions
+  const validRecipients = recipients.map((recipient, i) => {
+    try {
+      return validateAddress(recipient)
+    } catch {
+      throw new Error(`Invalid recipient address at index ${i}: ${recipient}`)
+    }
+  })
+
   // Validate amounts
   amounts.forEach((amount, i) => {
     validatePositiveAmount(amount, `amounts[${i}]`)
   })
 
-  // Calculate total and approve
+  // Calculate total
   const total = amounts.reduce((sum, amount) => sum + amount, 0n)
 
-  // Approve rewards distributor
+  // Now that all validation passed, approve the token to spend from our account
   const approveHash = await client.writeContract({
-    address: validateAddress(token),
+    address: validToken,
     abi: Abis.tip20,
     functionName: 'approve',
-    args: [Contracts.REWARDS_DISTRIBUTOR, total],
+    args: [validToken, total],
   })
-  await client.waitForTransactionReceipt({ hash: approveHash })
+  const approveReceipt = await client.waitForTransactionReceipt({ hash: approveHash })
 
-  // Distribute
+  // Check if approve succeeded before proceeding
+  if (approveReceipt.status !== 'success') {
+    throw new Error('Approve transaction failed')
+  }
+
+  // Distribute rewards
   const hash = await client.writeContract({
-    address: Contracts.REWARDS_DISTRIBUTOR,
-    abi: Abis.rewardsDistributor,
-    functionName: 'distributeReward',
-    args: [validateAddress(token), recipients.map(validateAddress), amounts],
+    address: validToken,
+    abi: Abis.tip20Rewards,
+    functionName: 'distributeRewards',
+    args: [validRecipients, amounts],
   })
 
   const receipt = await client.waitForTransactionReceipt({ hash })
@@ -159,18 +209,34 @@ export async function claimRewards(
   token: Address
 ): Promise<TransactionResult & { claimed?: bigint }> {
   const client = getWalletClient()
+  const validToken = validateAddress(token)
 
   const hash = await client.writeContract({
-    address: Contracts.REWARDS_DISTRIBUTOR,
-    abi: Abis.rewardsDistributor,
+    address: validToken,
+    abi: Abis.tip20Rewards,
     functionName: 'claimRewards',
-    args: [validateAddress(token)],
+    args: [],
   })
 
   const receipt = await client.waitForTransactionReceipt({ hash })
 
   // Parse claimed amount from logs
   let claimed: bigint | undefined
+  for (const log of receipt.logs) {
+    try {
+      const decoded = decodeEventLog({
+        abi: Abis.tip20Rewards,
+        data: log.data,
+        topics: log.topics,
+      })
+      if (decoded.eventName === 'RewardsClaimed') {
+        claimed = (decoded.args as { amount: bigint }).amount
+        break
+      }
+    } catch {
+      // Not a RewardsClaimed event, continue
+    }
+  }
 
   return {
     success: receipt.status === 'success',

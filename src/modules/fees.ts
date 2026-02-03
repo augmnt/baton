@@ -28,8 +28,19 @@ export async function getFeeToken(account: Address): Promise<Address | null> {
     }
 
     return feeToken
-  } catch {
-    return null
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    // Account not having a fee token set causes various revert types
+    // All reverts should return null since not having a fee token is valid
+    if (
+      message.includes('execution reverted') ||
+      message.includes('Unable to decode signature') ||
+      message.includes('reverted')
+    ) {
+      return null
+    }
+    // Propagate unexpected errors (network issues, etc.)
+    throw new Error(`Failed to get fee token: ${message}`)
   }
 }
 
@@ -47,8 +58,17 @@ export async function getSupportedFeeTokens(): Promise<Address[]> {
     })) as Address[]
 
     return tokens
-  } catch {
-    return []
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    // Contract returning empty/no tokens is valid
+    if (
+      message.includes('execution reverted') ||
+      message.includes('Unable to decode signature') ||
+      message.includes('reverted')
+    ) {
+      return []
+    }
+    throw new Error(`Failed to get supported fee tokens: ${message}`)
   }
 }
 
@@ -67,8 +87,17 @@ export async function getFeeRate(token: Address): Promise<bigint> {
     })) as bigint
 
     return rate
-  } catch {
-    return 0n
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    // Token not being a fee token (0 rate) is valid
+    if (
+      message.includes('execution reverted') ||
+      message.includes('Unable to decode signature') ||
+      message.includes('reverted')
+    ) {
+      return 0n
+    }
+    throw new Error(`Failed to get fee rate: ${message}`)
   }
 }
 

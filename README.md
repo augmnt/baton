@@ -4,7 +4,7 @@ CLI toolkit and MCP server for the Tempo blockchain.
 
 ## Features
 
-- **102 MCP Tools** - Complete blockchain operations accessible via Model Context Protocol
+- **126 MCP Tools** - Complete blockchain operations accessible via Model Context Protocol
 - **CLI Interface** - Command-line interface for all operations
 - **TIP-20 Token Operations** - Transfer, approve, mint, burn, and role management
 - **DEX Integration** - Swap, limit orders, and price calculations
@@ -47,6 +47,79 @@ npm install
 npm run build
 ```
 
+## Quick Start
+
+The fastest way to get started is using the interactive setup wizard:
+
+```bash
+baton init
+```
+
+This will guide you through:
+- Creating a new wallet or importing an existing one
+- Choosing your network (testnet or mainnet)
+- Saving your configuration to `.env`
+- Optionally funding your wallet from the testnet faucet
+
+### Example Setup Flow
+
+```
+$ baton init
+
+██████╗  █████╗ ████████╗ ██████╗ ███╗   ██╗
+██╔══██╗██╔══██╗╚══██╔══╝██╔═══██╗████╗  ██║
+██████╔╝███████║   ██║   ██║   ██║██╔██╗ ██║
+██╔══██╗██╔══██║   ██║   ██║   ██║██║╚██╗██║
+██████╔╝██║  ██║   ██║   ╚██████╔╝██║ ╚████║
+╚═════╝ ╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═══╝
+
+  Welcome to Baton Setup
+
+? How would you like to set up your wallet?
+  ❯ Create a new wallet
+    Import existing wallet (private key)
+    Import from mnemonic phrase
+
+? Generate recovery phrase (mnemonic)? Yes
+
+✓ Wallet generated successfully!
+
+  Address:     0x742d35Cc6634C0532925a3b844Bc454e4438f44e
+  Mnemonic:    word1 word2 word3 ... word12
+
+  ⚠️  IMPORTANT: Write down your mnemonic phrase and store it safely!
+
+? Which network would you like to use?
+  ❯ Testnet (recommended for getting started)
+    Mainnet
+
+? Save configuration to .env file? Yes
+✓ Configuration saved to .env
+
+? Fund wallet from testnet faucet? Yes
+✓ Funded successfully!
+
+🚀 You're all set!
+```
+
+### Updating Configuration
+
+To update your configuration later:
+
+```bash
+# Interactive configuration menu
+baton config
+
+# Or use specific commands:
+baton config show          # View current config
+baton config set-key       # Update private key (secure input)
+baton config set-network   # Change network
+```
+
+**Security Note:** The `set-key` command uses secure password-style input - your private key is never visible on screen or saved to shell history.
+
+---
+
 ## Configuration
 
 ### Environment Variables
@@ -58,7 +131,7 @@ Baton uses the following environment variables:
 | `TEMPO_PRIVATE_KEY` | For write ops | Private key for signing transactions |
 | `TEMPO_RPC_URL` | No | Custom RPC endpoint (defaults to Tempo mainnet) |
 | `TEMPO_EXPLORER_URL` | No | Custom block explorer URL |
-| `TEMPO_NETWORK` | No | `mainnet` (default) or `testnet` |
+| `TEMPO_NETWORK` | No | `mainnet` or `testnet` (default) |
 
 ### Configuration Methods
 
@@ -91,6 +164,19 @@ TEMPO_NETWORK=mainnet
 Note: For MCP servers, the `.env` file must be in the directory where Claude is running (your project directory), not the baton installation directory.
 
 ## CLI Usage
+
+### Setup Commands
+
+```bash
+# Interactive setup wizard (recommended for new users)
+baton init
+
+# Configuration management
+baton config              # Interactive config menu
+baton config show         # View current configuration
+baton config set-key      # Update private key (secure input)
+baton config set-network  # Change network (mainnet/testnet)
+```
 
 ### Wallet Operations
 
@@ -291,22 +377,22 @@ Or if installed globally via npm:
 
 ### Available Tools
 
-The MCP server provides 102 tools organized by domain:
+The MCP server provides 126 tools organized by domain:
 
 | Domain | Tools | Description |
 |--------|-------|-------------|
 | Chain | 5 | Block and transaction queries |
 | Wallet | 6 | Wallet generation and derivation |
-| Account | 7 | Balance and account info |
-| Token | 11 | TIP-20 token operations |
+| Account | 13 | Balance and account info |
+| Token | 14 | TIP-20 token operations |
 | DEX | 10 | Swap and order management |
-| Fees | 8 | Fee token management |
-| Fee AMM | 5 | Fee liquidity operations |
-| Keychain | 8 | Access key management |
+| Fees | 9 | Fee token management |
+| Fee AMM | 7 | Fee liquidity operations |
+| Keychain | 11 | Access key management |
 | Policy | 8 | Transfer policy management |
-| Rewards | 7 | Rewards distribution |
-| History | 4 | Transfer history |
-| Faucet | 5 | Testnet faucet |
+| Rewards | 10 | Rewards distribution |
+| History | 7 | Transfer history |
+| Faucet | 8 | Testnet faucet |
 | Contracts | 8 | Generic contract operations |
 | Utils | 10 | Utility functions |
 
@@ -412,6 +498,8 @@ const price = tickToPrice(100)   // Get price from tick
 |-------|---------|
 | pathUSD | `0x20c0000000000000000000000000000000000000` |
 | AlphaUSD | `0x20c0000000000000000000000000000000000001` |
+| BetaUSD | `0x20c0000000000000000000000000000000000002` |
+| ThetaUSD | `0x20c0000000000000000000000000000000000003` |
 
 ## Contract Addresses
 
@@ -421,6 +509,8 @@ const price = tickToPrice(100)   // Get price from tick
 | STABLECOIN_DEX | `0xdec0000000000000000000000000000000000000` |
 | FEE_MANAGER | `0xfeec000000000000000000000000000000000000` |
 | ACCOUNT_KEYCHAIN | `0xAAAAAAAA00000000000000000000000000000000` |
+| FEE_AMM | `0xfee0000000000000000000000000000000000000` |
+| POLICY_REGISTRY | `0x403000000000000000000000000000000000000` |
 | MULTICALL3 | `0xcA11bde05977b3631167028862bE2a173976CA11` |
 
 ## Security

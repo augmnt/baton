@@ -1,4 +1,7 @@
 import { createRequire } from 'module'
+import { dirname, join } from 'path'
+import { fileURLToPath } from 'url'
+import { existsSync } from 'fs'
 import { config as dotenvConfig } from 'dotenv'
 import type { Address, Hex } from 'viem'
 import { Networks } from './constants.js'
@@ -6,7 +9,25 @@ import type { BatonConfig } from './types.js'
 import { deriveAddress } from '../modules/wallet.js'
 
 const require = createRequire(import.meta.url)
-const packageJson = require('../../../package.json')
+
+// Find package.json - works from both src/ and dist/ locations
+function findPackageJson(): string {
+  const currentDir = dirname(fileURLToPath(import.meta.url))
+  // Check relative paths: ../../package.json (from src/lib) or ../../../package.json (from dist/src/lib)
+  const candidates = [
+    join(currentDir, '../../package.json'),
+    join(currentDir, '../../../package.json'),
+  ]
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      return candidate
+    }
+  }
+  // Fallback
+  return candidates[0]
+}
+
+const packageJson = require(findPackageJson())
 
 /**
  * Get the package version from package.json
@@ -71,10 +92,11 @@ export function getPrivateKey(required = false): Hex | undefined {
  */
 export function getNetwork(): 'mainnet' | 'testnet' {
   const network = process.env.TEMPO_NETWORK?.toLowerCase()
-  if (network === 'testnet') {
-    return 'testnet'
+  if (network === 'mainnet') {
+    return 'mainnet'
   }
-  return 'mainnet'
+  // Default to testnet since mainnet doesn't exist yet
+  return 'testnet'
 }
 
 /**

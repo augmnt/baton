@@ -1,4 +1,5 @@
 import type { Address } from 'viem'
+import { decodeEventLog } from 'viem'
 import { getPublicClient, getWalletClient } from '../lib/client.js'
 import { buildExplorerTxUrl } from '../lib/config.js'
 import { Abis, Contracts } from '../lib/constants.js'
@@ -24,8 +25,13 @@ export async function getLiquidity(token: Address, provider: Address): Promise<b
     })) as bigint
 
     return liquidity
-  } catch {
-    return 0n
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    // Token not in pool is a valid case - return 0
+    if (message.includes('execution reverted')) {
+      return 0n
+    }
+    throw new Error(`Failed to get liquidity: ${message}`)
   }
 }
 
@@ -44,8 +50,37 @@ export async function getTotalLiquidity(token: Address): Promise<bigint> {
     })) as bigint
 
     return liquidity
-  } catch {
-    return 0n
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    // Token not in pool is a valid case - return 0
+    if (message.includes('execution reverted')) {
+      return 0n
+    }
+    throw new Error(`Failed to get total liquidity: ${message}`)
+  }
+}
+
+/**
+ * Get total deposits for a token (used for calculating liquidity share value)
+ */
+export async function getTotalDeposits(token: Address): Promise<bigint> {
+  const client = getPublicClient()
+
+  try {
+    const deposits = (await client.readContract({
+      address: Contracts.FEE_AMM,
+      abi: Abis.feeAmm,
+      functionName: 'getTotalDeposits',
+      args: [validateAddress(token)],
+    })) as bigint
+
+    return deposits
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    if (message.includes('execution reverted')) {
+      return 0n
+    }
+    throw new Error(`Failed to get total deposits: ${message}`)
   }
 }
 
@@ -99,9 +134,23 @@ export async function mintFeeLiquidity(
 
   const receipt = await client.waitForTransactionReceipt({ hash })
 
-  // Parse liquidity amount from receipt logs
+  // Parse liquidity amount from LiquidityMinted event logs
   let liquidity: bigint | undefined
-  // Would need to parse event logs for the exact liquidity minted
+  for (const log of receipt.logs) {
+    try {
+      const decoded = decodeEventLog({
+        abi: Abis.feeAmm,
+        data: log.data,
+        topics: log.topics,
+      })
+      if (decoded.eventName === 'LiquidityMinted') {
+        liquidity = (decoded.args as { liquidity: bigint }).liquidity
+        break
+      }
+    } catch {
+      // Not a LiquidityMinted event, continue
+    }
+  }
 
   return {
     success: receipt.status === 'success',
@@ -133,9 +182,23 @@ export async function burnFeeLiquidity(params: {
 
   const receipt = await client.waitForTransactionReceipt({ hash })
 
-  // Parse amount returned from receipt logs
+  // Parse amount returned from LiquidityBurned event logs
   let amount: bigint | undefined
-  // Would need to parse event logs for the exact amount returned
+  for (const log of receipt.logs) {
+    try {
+      const decoded = decodeEventLog({
+        abi: Abis.feeAmm,
+        data: log.data,
+        topics: log.topics,
+      })
+      if (decoded.eventName === 'LiquidityBurned') {
+        amount = (decoded.args as { amount: bigint }).amount
+        break
+      }
+    } catch {
+      // Not a LiquidityBurned event, continue
+    }
+  }
 
   return {
     success: receipt.status === 'success',
@@ -152,36 +215,44 @@ export async function burnFeeLiquidity(params: {
 
 /**
  * Calculate expected liquidity tokens for a deposit
+ * Uses the standard AMM formula: liquidity = (amount * totalLiquidity) / totalDeposits
+ * For first deposit, liquidity equals amount (1:1 ratio)
  */
 export async function calculateLiquidityMint(
   token: Address,
   amount: bigint
 ): Promise<bigint> {
-  // Simplified calculation - actual implementation would depend on AMM formula
-  const totalLiquidity = await getTotalLiquidity(token)
+  const [totalLiquidity, totalDeposits] = await Promise.all([
+    getTotalLiquidity(token),
+    getTotalDeposits(token),
+  ])
 
-  if (totalLiquidity === 0n) {
+  if (totalLiquidity === 0n || totalDeposits === 0n) {
     // First deposit - liquidity equals amount
     return amount
   }
 
-  // Pro-rata calculation
-  return (amount * totalLiquidity) / totalLiquidity
+  // Pro-rata calculation based on deposit share
+  return (amount * totalLiquidity) / totalDeposits
 }
 
 /**
  * Calculate expected token amount for a liquidity burn
+ * Uses the standard AMM formula: amount = (liquidity * totalDeposits) / totalLiquidity
  */
 export async function calculateLiquidityBurn(
   token: Address,
   liquidity: bigint
 ): Promise<bigint> {
-  const totalLiquidity = await getTotalLiquidity(token)
+  const [totalLiquidity, totalDeposits] = await Promise.all([
+    getTotalLiquidity(token),
+    getTotalDeposits(token),
+  ])
 
   if (totalLiquidity === 0n) {
     return 0n
   }
 
-  // Pro-rata calculation
-  return (liquidity * totalLiquidity) / totalLiquidity
+  // Pro-rata calculation based on liquidity share
+  return (liquidity * totalDeposits) / totalLiquidity
 }

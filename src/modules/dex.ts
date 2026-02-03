@@ -1,4 +1,5 @@
 import type { Address } from 'viem'
+import { decodeEventLog } from 'viem'
 import { getPublicClient, getWalletClient } from '../lib/client.js'
 import { buildExplorerTxUrl } from '../lib/config.js'
 import { Abis, Contracts, Defaults } from '../lib/constants.js'
@@ -37,8 +38,13 @@ export async function getSwapQuote(params: {
       args: [validateAddress(tokenIn), validateAddress(tokenOut), amountIn],
     })) as bigint
 
+    // Check for zero output - indicates no liquidity or invalid pair
+    if (amountOut === 0n) {
+      throw new Error('Insufficient liquidity in the pool for this swap - quote returned zero')
+    }
+
     // Calculate price impact (simplified - would need pool data for accurate calculation)
-    const priceImpact = amountOut > 0n ? Number((amountIn * 10000n) / amountOut - 10000n) / 100 : 0
+    const priceImpact = Number((amountIn * 10000n) / amountOut - 10000n) / 100
 
     return {
       tokenIn: validateAddress(tokenIn),
@@ -164,7 +170,7 @@ export async function placeOrder(params: {
   amount: bigint
   tick: number
   isBuy: boolean
-}): Promise<TransactionResult & { orderId?: bigint }> {
+}): Promise<TransactionResult & { orderId?: bigint; warning?: string }> {
   const client = getWalletClient()
   const { token, amount, tick, isBuy } = params
 
@@ -190,9 +196,29 @@ export async function placeOrder(params: {
 
   const receipt = await client.waitForTransactionReceipt({ hash })
 
-  // Try to extract order ID from logs
+  // Extract order ID from OrderPlaced event logs
   let orderId: bigint | undefined
-  // Would need to parse logs for the order ID
+  for (const log of receipt.logs) {
+    try {
+      const decoded = decodeEventLog({
+        abi: Abis.stablecoinDex,
+        data: log.data,
+        topics: log.topics,
+      })
+      if (decoded.eventName === 'OrderPlaced') {
+        orderId = (decoded.args as { orderId: bigint }).orderId
+        break
+      }
+    } catch {
+      // Not an OrderPlaced event, continue
+    }
+  }
+
+  // Warn if order ID not found but transaction succeeded
+  const eventParsingWarning =
+    receipt.status === 'success' && orderId === undefined
+      ? 'Warning: Transaction succeeded but OrderPlaced event not found in logs'
+      : undefined
 
   return {
     success: receipt.status === 'success',
@@ -200,6 +226,7 @@ export async function placeOrder(params: {
     blockNumber: receipt.blockNumber,
     explorerUrl: buildExplorerTxUrl(hash),
     orderId,
+    warning: eventParsingWarning,
   }
 }
 

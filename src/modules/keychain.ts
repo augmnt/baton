@@ -112,15 +112,16 @@ export async function getAccessKeys(owner: Address): Promise<Address[]> {
 export async function getAccessKeysWithInfo(owner: Address): Promise<AccessKeyInfo[]> {
   const keys = await getAccessKeys(owner)
 
-  const infos: AccessKeyInfo[] = []
-  for (const key of keys) {
-    const info = await getAccessKey(owner, key)
-    if (info) {
-      infos.push(info)
-    }
-  }
+  const results = await Promise.allSettled(
+    keys.map((key) => getAccessKey(owner, key))
+  )
 
-  return infos
+  return results
+    .filter(
+      (r): r is PromiseFulfilledResult<AccessKeyInfo> =>
+        r.status === 'fulfilled' && r.value !== null
+    )
+    .map((r) => r.value)
 }
 
 /**
@@ -164,6 +165,21 @@ export async function authorizeAccessKey(params: {
 }): Promise<TransactionResult> {
   const client = getWalletClient()
   const { accessKey, permissions, expiry = 0n } = params
+
+  // Validate that expiry is in the future (if not 0 which means no expiry)
+  if (expiry > 0n) {
+    const now = BigInt(Math.floor(Date.now() / 1000))
+    if (expiry <= now) {
+      throw new Error('Expiry must be in the future')
+    }
+  }
+
+  // Validate that at least one permission is enabled
+  const hasAnyPermission =
+    permissions.canTransfer || permissions.canApprove || permissions.canManageKeys
+  if (!hasAnyPermission) {
+    throw new Error('At least one permission must be enabled')
+  }
 
   const encodedPermissions = encodePermissions(permissions)
 
@@ -215,8 +231,15 @@ export async function updateAccessKeyPermissions(params: {
   permissions: AccessKeyPermissions
   expiry?: bigint
 }): Promise<TransactionResult> {
-  // Revoke and re-authorize with new permissions
-  await revokeAccessKey(params.accessKey)
+  // Revoke first and wait for receipt before re-authorizing
+  const revokeResult = await revokeAccessKey(params.accessKey)
+
+  // Check if revoke succeeded before proceeding
+  if (!revokeResult.success) {
+    throw new Error('Failed to revoke existing access key before updating permissions')
+  }
+
+  // Now re-authorize with new permissions
   return authorizeAccessKey(params)
 }
 

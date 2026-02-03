@@ -39,9 +39,9 @@ describe('Rewards Tools', () => {
 
   describe('tempo_getClaimableRewardsMulti', () => {
     it('should return claimable rewards for multiple tokens', async () => {
-      const rewardsMap = new Map<string, bigint>([
-        ['0xtoken1', 1000000n],
-        ['0xtoken2', 2000000n],
+      const rewardsMap = new Map([
+        ['0xtoken1', { amount: 1000000n, queryStatus: 'success' as const }],
+        ['0xtoken2', { amount: 2000000n, queryStatus: 'success' as const }],
       ])
       vi.mocked(rewards.getClaimableRewardsMulti).mockResolvedValue(rewardsMap)
 
@@ -80,7 +80,7 @@ describe('Rewards Tools', () => {
       })
 
       const tool = registeredTools.get('tempo_setRewardRecipient')
-      const result = await tool!.handler({ recipient: '0xrecipient' })
+      const result = await tool!.handler({ token: '0xtoken', recipient: '0xrecipient' })
 
       expect(result.isError).toBeUndefined()
       const data = JSON.parse(result.content[0].text)
@@ -187,9 +187,9 @@ describe('Rewards Tools', () => {
   describe('tempo_getMyClaimableRewardsMulti', () => {
     it('should return claimable rewards for multiple tokens for configured wallet', async () => {
       vi.mocked(config.getConfiguredAddress).mockReturnValue('0xmyaddress' as any)
-      const rewardsMap = new Map<string, bigint>([
-        ['0xtoken1', 1000000n],
-        ['0xtoken2', 2000000n],
+      const rewardsMap = new Map([
+        ['0xtoken1', { amount: 1000000n, queryStatus: 'success' as const }],
+        ['0xtoken2', { amount: 2000000n, queryStatus: 'success' as const }],
       ])
       vi.mocked(rewards.getClaimableRewardsMulti).mockResolvedValue(rewardsMap)
 

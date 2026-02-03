@@ -4,6 +4,28 @@ import type { Address, Hex } from 'viem'
 import * as contracts from '../../modules/contracts.js'
 import { getErrorMessage } from '../../lib/utils.js'
 
+/**
+ * Validate that a parsed ABI has the expected structure
+ */
+function validateAbiStructure(abi: unknown): void {
+  if (!Array.isArray(abi)) {
+    throw new Error('ABI must be an array')
+  }
+  if (abi.length === 0) {
+    throw new Error('ABI array is empty')
+  }
+  // Check that each item has a type property
+  for (let i = 0; i < abi.length; i++) {
+    const item = abi[i]
+    if (typeof item !== 'object' || item === null) {
+      throw new Error(`ABI item at index ${i} must be an object`)
+    }
+    if (!('type' in item)) {
+      throw new Error(`ABI item at index ${i} is missing 'type' property`)
+    }
+  }
+}
+
 export function registerContractsTools(server: McpServer) {
   // Read from contract
   server.tool(
@@ -18,6 +40,7 @@ export function registerContractsTools(server: McpServer) {
     async ({ address, abi, functionName, args }) => {
       try {
         const parsedAbi = JSON.parse(abi)
+        validateAbiStructure(parsedAbi)
         const result = await contracts.readContract({
           address: address as Address,
           abi: parsedAbi,
@@ -61,6 +84,7 @@ export function registerContractsTools(server: McpServer) {
     async ({ address, abi, functionName, args, value }) => {
       try {
         const parsedAbi = JSON.parse(abi)
+        validateAbiStructure(parsedAbi)
         const result = await contracts.writeContract({
           address: address as Address,
           abi: parsedAbi,
@@ -104,6 +128,7 @@ export function registerContractsTools(server: McpServer) {
     async ({ address, abi, functionName, args, value }) => {
       try {
         const parsedAbi = JSON.parse(abi)
+        validateAbiStructure(parsedAbi)
         const result = await contracts.simulateContract({
           address: address as Address,
           abi: parsedAbi,
@@ -205,6 +230,7 @@ export function registerContractsTools(server: McpServer) {
     async ({ address, abi, functionName, args, value }) => {
       try {
         const parsedAbi = JSON.parse(abi)
+        validateAbiStructure(parsedAbi)
         const gas = await contracts.estimateContractGas({
           address: address as Address,
           abi: parsedAbi,
@@ -241,6 +267,7 @@ export function registerContractsTools(server: McpServer) {
     async ({ abi, functionName, args }) => {
       try {
         const parsedAbi = JSON.parse(abi)
+        validateAbiStructure(parsedAbi)
         const data = contracts.encodeContractData({
           abi: parsedAbi,
           functionName,

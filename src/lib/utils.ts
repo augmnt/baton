@@ -290,19 +290,31 @@ export function decodeDexError(error: unknown): string {
 /**
  * Calculate minimum output amount with slippage
  * @param amount - Expected output amount
- * @param slippageBps - Slippage in basis points (100 = 1%)
+ * @param slippageBps - Slippage in basis points (100 = 1%), max 10000 (100%)
  * @returns Minimum acceptable amount
  */
 export function applySlippage(amount: bigint, slippageBps: number): bigint {
+  if (slippageBps < 0) {
+    throw new Error('Slippage basis points cannot be negative')
+  }
+  if (slippageBps > 10000) {
+    throw new Error('Slippage basis points cannot exceed 10000 (100%)')
+  }
   return (amount * BigInt(10000 - slippageBps)) / 10000n
 }
 
 /**
  * Calculate maximum input amount with slippage
  * @param amount - Expected input amount
- * @param slippageBps - Slippage in basis points (100 = 1%)
+ * @param slippageBps - Slippage in basis points (100 = 1%), max 10000 (100%)
  * @returns Maximum acceptable input
  */
 export function applySlippageMax(amount: bigint, slippageBps: number): bigint {
+  if (slippageBps < 0) {
+    throw new Error('Slippage basis points cannot be negative')
+  }
+  if (slippageBps > 10000) {
+    throw new Error('Slippage basis points cannot exceed 10000 (100%)')
+  }
   return (amount * BigInt(10000 + slippageBps)) / 10000n
 }

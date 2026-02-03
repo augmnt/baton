@@ -62,6 +62,7 @@ export function registerAccountTools(server: McpServer) {
                   symbol: b.symbol,
                   balance: b.balance.toString(),
                   formatted: b.formatted,
+                  queryStatus: b.queryStatus,
                 }))
               ),
             },
@@ -100,6 +101,7 @@ export function registerAccountTools(server: McpServer) {
                   symbol: b.symbol,
                   balance: b.balance.toString(),
                   formatted: b.formatted,
+                  queryStatus: b.queryStatus,
                 }))
               ),
             },
@@ -219,6 +221,7 @@ export function registerAccountTools(server: McpServer) {
                   symbol: b.symbol,
                   balance: b.balance.toString(),
                   formatted: b.formatted,
+                  queryStatus: b.queryStatus,
                 }))
               ),
             },
@@ -273,6 +276,7 @@ export function registerAccountTools(server: McpServer) {
                   symbol: b.symbol,
                   balance: b.balance.toString(),
                   formatted: b.formatted,
+                  queryStatus: b.queryStatus,
                 })),
               }),
             },
@@ -312,6 +316,7 @@ export function registerAccountTools(server: McpServer) {
                   symbol: b.symbol,
                   balance: b.balance.toString(),
                   formatted: b.formatted,
+                  queryStatus: b.queryStatus,
                 })),
               }),
             },
@@ -406,6 +411,7 @@ export function registerAccountTools(server: McpServer) {
                   symbol: b.symbol,
                   balance: b.balance.toString(),
                   formatted: b.formatted,
+                  queryStatus: b.queryStatus,
                 })),
               }),
             },

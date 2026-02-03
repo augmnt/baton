@@ -104,6 +104,13 @@ export interface CreateClientOptions {
   chain?: Chain
 }
 
+// RPC client configuration
+const RPC_CONFIG = {
+  timeout: 30_000, // 30 seconds
+  retryCount: 3,
+  retryDelay: 2000, // 2 seconds between retries (increased from 1s for better reliability)
+}
+
 /**
  * Create a public client for read-only operations
  */
@@ -114,7 +121,11 @@ export function createTempoPublicClient(options: CreateClientOptions = {}): Temp
 
   return createClient({
     chain,
-    transport: http(rpcUrl),
+    transport: http(rpcUrl, {
+      timeout: RPC_CONFIG.timeout,
+      retryCount: RPC_CONFIG.retryCount,
+      retryDelay: RPC_CONFIG.retryDelay,
+    }),
   })
     .extend(publicActions)
     .extend(walletActions)
@@ -139,7 +150,11 @@ export function createTempoWalletClient(options: CreateClientOptions = {}): Temp
   return createClient({
     account,
     chain,
-    transport: http(rpcUrl),
+    transport: http(rpcUrl, {
+      timeout: RPC_CONFIG.timeout,
+      retryCount: RPC_CONFIG.retryCount,
+      retryDelay: RPC_CONFIG.retryDelay,
+    }),
   })
     .extend(publicActions)
     .extend(walletActions) as TempoWalletClient

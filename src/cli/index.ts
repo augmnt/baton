@@ -9,6 +9,8 @@ import {
   createDexCommand,
   createChainCommand,
   createFaucetCommand,
+  createInitCommand,
+  createConfigCommand,
 } from './commands/index.js'
 import { getBanner, colors } from './branding.js'
 import { getVersion } from '../lib/config.js'
@@ -43,6 +45,8 @@ export function createCli(): Command {
   })
 
   // Add subcommands
+  program.addCommand(createInitCommand())
+  program.addCommand(createConfigCommand())
   program.addCommand(createWalletCommand())
   program.addCommand(createAccountCommand())
   program.addCommand(createTokenCommand())

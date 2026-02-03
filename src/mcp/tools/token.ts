@@ -116,6 +116,10 @@ export function registerTokenTools(server: McpServer) {
     },
     async ({ token: tokenAddress, to, amount, memo }) => {
       try {
+        // Validate memo length if provided (and not already a bytes32 hex)
+        if (memo && !memo.startsWith('0x') && memo.length > 31) {
+          throw new Error('Memo too long. Maximum 31 characters for UTF-8 strings.')
+        }
         const parsedAmount = parseAmount(amount)
         const result = await token.transfer({
           token: tokenAddress as Address,
@@ -163,6 +167,13 @@ export function registerTokenTools(server: McpServer) {
     },
     async ({ token: tokenAddress, transfers }) => {
       try {
+        // Validate memo lengths for all transfers
+        for (let i = 0; i < transfers.length; i++) {
+          const memo = transfers[i].memo
+          if (memo && !memo.startsWith('0x') && memo.length > 31) {
+            throw new Error(`Memo too long at index ${i}. Maximum 31 characters for UTF-8 strings.`)
+          }
+        }
         const result = await token.batchTransfer({
           token: tokenAddress as Address,
           transfers: transfers.map((t) => ({

@@ -4,6 +4,11 @@ import { Abis, Contracts, KnownTokensList, TokenSymbols } from '../lib/constants
 import type { AccountInfo, TokenBalance } from '../lib/types.js'
 import { formatAmount, validateAddress } from '../lib/utils.js'
 
+// Extended TokenBalance type that includes query status
+export interface TokenBalanceWithStatus extends TokenBalance {
+  queryStatus: 'success' | 'failed'
+}
+
 /**
  * Get the balance of a specific token for an address
  */
@@ -57,7 +62,7 @@ export async function getFormattedBalance(
 /**
  * Get balances of all known tokens for an address using Multicall3
  */
-export async function getBalances(address: Address): Promise<TokenBalance[]> {
+export async function getBalances(address: Address): Promise<TokenBalanceWithStatus[]> {
   const client = getPublicClient()
   const validAddress = validateAddress(address)
 
@@ -78,12 +83,13 @@ export async function getBalances(address: Address): Promise<TokenBalance[]> {
     ]),
   })
 
-  const balances: TokenBalance[] = []
+  const balances: TokenBalanceWithStatus[] = []
 
   for (let i = 0; i < KnownTokensList.length; i++) {
     const balanceResult = results[i * 2]
     const symbolResult = results[i * 2 + 1]
 
+    const balanceQueryFailed = balanceResult.status !== 'success'
     const balance = balanceResult.status === 'success' ? (balanceResult.result as bigint) : 0n
     const symbol =
       symbolResult.status === 'success'
@@ -95,6 +101,7 @@ export async function getBalances(address: Address): Promise<TokenBalance[]> {
       symbol,
       balance,
       formatted: formatAmount(balance),
+      queryStatus: balanceQueryFailed ? 'failed' : 'success',
     })
   }
 
@@ -107,7 +114,7 @@ export async function getBalances(address: Address): Promise<TokenBalance[]> {
 export async function getTokenBalances(
   address: Address,
   tokens: Address[]
-): Promise<TokenBalance[]> {
+): Promise<TokenBalanceWithStatus[]> {
   const client = getPublicClient()
   const validAddress = validateAddress(address)
   const validTokens = tokens.map(validateAddress)
@@ -129,12 +136,13 @@ export async function getTokenBalances(
     ]),
   })
 
-  const balances: TokenBalance[] = []
+  const balances: TokenBalanceWithStatus[] = []
 
   for (let i = 0; i < validTokens.length; i++) {
     const balanceResult = results[i * 2]
     const symbolResult = results[i * 2 + 1]
 
+    const balanceQueryFailed = balanceResult.status !== 'success'
     const balance = balanceResult.status === 'success' ? (balanceResult.result as bigint) : 0n
     const symbol =
       symbolResult.status === 'success'
@@ -146,6 +154,7 @@ export async function getTokenBalances(
       symbol,
       balance,
       formatted: formatAmount(balance),
+      queryStatus: balanceQueryFailed ? 'failed' : 'success',
     })
   }
 
@@ -217,7 +226,7 @@ export async function hasAnyBalance(address: Address): Promise<boolean> {
 /**
  * Get all non-zero balances for an address
  */
-export async function getNonZeroBalances(address: Address): Promise<TokenBalance[]> {
+export async function getNonZeroBalances(address: Address): Promise<TokenBalanceWithStatus[]> {
   const balances = await getBalances(address)
   return balances.filter((b) => b.balance > 0n)
 }

@@ -4,6 +4,30 @@ import { buildExplorerTxUrl } from '../lib/config.js'
 import type { TransactionResult } from '../lib/types.js'
 import { validateAddress } from '../lib/utils.js'
 
+// Custom RPC method types for Tempo testnet faucet
+interface FaucetFundResult {
+  transactionHash: string
+  blockNumber: string
+}
+
+interface FaucetInfoResult {
+  amountPerRequest: string
+  cooldownSeconds: number
+  dailyLimit: string
+}
+
+interface FaucetStatusResult {
+  canRequest: boolean
+  cooldownRemaining: number
+  lastRequestTime: string
+}
+
+// Type for custom RPC request with unknown method
+interface CustomRpcRequest {
+  method: string
+  params?: unknown[]
+}
+
 /**
  * Fund an address via the testnet faucet
  * Uses the tempo_fundAddress RPC method
@@ -14,10 +38,11 @@ export async function fundAddress(address: Address): Promise<TransactionResult> 
 
   try {
     // Call the custom RPC method for testnet faucet
-    const result = await client.request({
-      method: 'tempo_fundAddress' as any,
+    // Using type assertion to handle custom Tempo RPC methods
+    const result = await (client.request as (req: CustomRpcRequest) => Promise<unknown>)({
+      method: 'tempo_fundAddress',
       params: [validAddress],
-    }) as { transactionHash: string; blockNumber: string }
+    }) as FaucetFundResult
 
     return {
       success: true,
@@ -53,8 +78,8 @@ export async function isFaucetAvailable(): Promise<boolean> {
 
   try {
     // Try to get faucet info
-    await client.request({
-      method: 'tempo_faucetInfo' as any,
+    await (client.request as (req: CustomRpcRequest) => Promise<unknown>)({
+      method: 'tempo_faucetInfo',
       params: [],
     })
     return true
@@ -75,14 +100,10 @@ export async function getFaucetInfo(): Promise<{
   const client = getPublicClient()
 
   try {
-    const info = await client.request({
-      method: 'tempo_faucetInfo' as any,
+    const info = await (client.request as (req: CustomRpcRequest) => Promise<unknown>)({
+      method: 'tempo_faucetInfo',
       params: [],
-    }) as {
-      amountPerRequest: string
-      cooldownSeconds: number
-      dailyLimit: string
-    }
+    }) as FaucetInfoResult
 
     return {
       available: true,
@@ -112,14 +133,10 @@ export async function getFaucetCooldown(address: Address): Promise<{
   const validAddress = validateAddress(address)
 
   try {
-    const status = await client.request({
-      method: 'tempo_faucetStatus' as any,
+    const status = await (client.request as (req: CustomRpcRequest) => Promise<unknown>)({
+      method: 'tempo_faucetStatus',
       params: [validAddress],
-    }) as {
-      canRequest: boolean
-      cooldownRemaining: number
-      lastRequestTime: string
-    }
+    }) as FaucetStatusResult
 
     return {
       canRequest: status.canRequest,

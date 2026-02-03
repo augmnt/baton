@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { registerAllTools } from './mcp/tools/index.js'
 import { KnownTokens, Contracts, Abis } from './lib/constants.js'
 import { getNetwork, getRpcUrl, getExplorerUrl, getVersion } from './lib/config.js'
+import { resetClients } from './lib/client.js'
 
 // Create the MCP server
 const server = new McpServer({
@@ -187,6 +188,9 @@ server.prompt(
 
 // Start the server
 async function main() {
+  // Reset any cached clients to ensure fresh configuration
+  resetClients()
+
   const transport = new StdioServerTransport()
   await server.connect(transport)
   console.error('Baton MCP Server started')

@@ -12,7 +12,8 @@ export const Contracts = {
   MULTICALL3: '0xcA11bde05977b3631167028862bE2a173976CA11' as Address,
   FEE_AMM: '0xfee0000000000000000000000000000000000000' as Address,
   POLICY_REGISTRY: '0x403000000000000000000000000000000000000' as Address,
-  REWARDS_DISTRIBUTOR: '0xreee000000000000000000000000000000000000' as Address,
+  // Note: Rewards are integrated directly into TIP-20 token contracts
+  // See: https://docs.tempo.xyz/protocol/tip20-rewards/overview
 } as const
 
 // ============================================================================
@@ -22,6 +23,8 @@ export const Contracts = {
 export const KnownTokens = {
   pathUSD: '0x20c0000000000000000000000000000000000000' as Address,
   AlphaUSD: '0x20c0000000000000000000000000000000000001' as Address,
+  BetaUSD: '0x20c0000000000000000000000000000000000002' as Address,
+  ThetaUSD: '0x20c0000000000000000000000000000000000003' as Address,
 } as const
 
 export const KnownTokensList: Address[] = Object.values(KnownTokens)
@@ -29,6 +32,46 @@ export const KnownTokensList: Address[] = Object.values(KnownTokens)
 export const TokenSymbols: Record<Address, string> = {
   [KnownTokens.pathUSD]: 'pathUSD',
   [KnownTokens.AlphaUSD]: 'AlphaUSD',
+  [KnownTokens.BetaUSD]: 'BetaUSD',
+  [KnownTokens.ThetaUSD]: 'ThetaUSD',
+}
+
+// Reverse mapping: symbol to address
+export const SymbolToAddress: Record<string, Address> = {
+  pathUSD: KnownTokens.pathUSD,
+  AlphaUSD: KnownTokens.AlphaUSD,
+  BetaUSD: KnownTokens.BetaUSD,
+  ThetaUSD: KnownTokens.ThetaUSD,
+}
+
+/**
+ * Resolve a token symbol or address to an address
+ * @param symbolOrAddress - Token symbol (e.g., "AlphaUSD") or address
+ * @returns The token address
+ * @throws Error if the symbol is not recognized and input is not a valid address
+ */
+export function resolveTokenAddress(symbolOrAddress: string): Address {
+  // Check if it's a known symbol (case-sensitive)
+  if (symbolOrAddress in SymbolToAddress) {
+    return SymbolToAddress[symbolOrAddress]
+  }
+
+  // Check case-insensitive match
+  const lowerInput = symbolOrAddress.toLowerCase()
+  for (const [symbol, address] of Object.entries(SymbolToAddress)) {
+    if (symbol.toLowerCase() === lowerInput) {
+      return address
+    }
+  }
+
+  // If it looks like an address (starts with 0x), return it as-is
+  if (symbolOrAddress.startsWith('0x')) {
+    return symbolOrAddress as Address
+  }
+
+  throw new Error(
+    `Unknown token symbol: ${symbolOrAddress}. Known tokens: ${Object.keys(SymbolToAddress).join(', ')}`
+  )
 }
 
 // ============================================================================
@@ -38,12 +81,12 @@ export const TokenSymbols: Record<Address, string> = {
 export const Networks = {
   mainnet: {
     rpcUrl: 'https://rpc.tempo.xyz',
-    explorerUrl: 'https://explore.tempo.xyz',
+    explorerUrl: 'https://explorer.tempo.xyz', // May not exist yet
     chainId: 42429,
   },
   testnet: {
     rpcUrl: 'https://rpc.moderato.tempo.xyz',
-    explorerUrl: 'https://explore.tempo.xyz',
+    explorerUrl: 'https://explore.tempo.xyz', // The actual working testnet explorer
     chainId: 42431,
   },
 } as const
@@ -57,6 +100,17 @@ export const Defaults = {
   GAS_LIMIT: 500_000n,
   SLIPPAGE_BPS: 50, // 0.5%
   ORDER_EXPIRY_HOURS: 24,
+} as const
+
+// ============================================================================
+// RPC Limits
+// ============================================================================
+
+export const RpcLimits = {
+  MAX_BLOCK_RANGE: 100_000n, // RPC hard limit
+  INITIAL_CHUNK_SIZE: 10_000n, // Conservative starting chunk for log queries
+  MIN_CHUNK_SIZE: 100n, // Minimum chunk to prevent infinite loops
+  MAX_RESULTS: 10_000, // Use 10k to stay safely under 20k limit
 } as const
 
 // ============================================================================
@@ -339,6 +393,37 @@ export const Abis = {
       ],
       stateMutability: 'view',
     },
+    {
+      type: 'event',
+      name: 'OrderPlaced',
+      inputs: [
+        { name: 'orderId', type: 'uint256', indexed: true },
+        { name: 'owner', type: 'address', indexed: true },
+        { name: 'token', type: 'address', indexed: false },
+        { name: 'amount', type: 'uint256', indexed: false },
+        { name: 'tick', type: 'int24', indexed: false },
+        { name: 'isBuy', type: 'bool', indexed: false },
+      ],
+    },
+    {
+      type: 'event',
+      name: 'OrderCancelled',
+      inputs: [
+        { name: 'orderId', type: 'uint256', indexed: true },
+        { name: 'owner', type: 'address', indexed: true },
+      ],
+    },
+    {
+      type: 'event',
+      name: 'Swap',
+      inputs: [
+        { name: 'sender', type: 'address', indexed: true },
+        { name: 'tokenIn', type: 'address', indexed: true },
+        { name: 'tokenOut', type: 'address', indexed: true },
+        { name: 'amountIn', type: 'uint256', indexed: false },
+        { name: 'amountOut', type: 'uint256', indexed: false },
+      ],
+    },
   ],
 
   feeAmm: [
@@ -378,6 +463,33 @@ export const Abis = {
       inputs: [{ name: 'token', type: 'address' }],
       outputs: [{ type: 'uint256' }],
       stateMutability: 'view',
+    },
+    {
+      type: 'function',
+      name: 'getTotalDeposits',
+      inputs: [{ name: 'token', type: 'address' }],
+      outputs: [{ type: 'uint256' }],
+      stateMutability: 'view',
+    },
+    {
+      type: 'event',
+      name: 'LiquidityMinted',
+      inputs: [
+        { name: 'provider', type: 'address', indexed: true },
+        { name: 'token', type: 'address', indexed: true },
+        { name: 'amount', type: 'uint256', indexed: false },
+        { name: 'liquidity', type: 'uint256', indexed: false },
+      ],
+    },
+    {
+      type: 'event',
+      name: 'LiquidityBurned',
+      inputs: [
+        { name: 'provider', type: 'address', indexed: true },
+        { name: 'token', type: 'address', indexed: true },
+        { name: 'liquidity', type: 'uint256', indexed: false },
+        { name: 'amount', type: 'uint256', indexed: false },
+      ],
     },
   ],
 
@@ -422,12 +534,13 @@ export const Abis = {
     },
   ],
 
-  rewardsDistributor: [
+  // TIP-20 Rewards ABI - these methods are on the token contract itself
+  // See: https://docs.tempo.xyz/protocol/tip20-rewards/overview
+  tip20Rewards: [
     {
       type: 'function',
-      name: 'distributeReward',
+      name: 'distributeRewards',
       inputs: [
-        { name: 'token', type: 'address' },
         { name: 'recipients', type: 'address[]' },
         { name: 'amounts', type: 'uint256[]' },
       ],
@@ -437,17 +550,14 @@ export const Abis = {
     {
       type: 'function',
       name: 'claimRewards',
-      inputs: [{ name: 'token', type: 'address' }],
+      inputs: [],
       outputs: [{ name: 'amount', type: 'uint256' }],
       stateMutability: 'nonpayable',
     },
     {
       type: 'function',
-      name: 'getClaimable',
-      inputs: [
-        { name: 'token', type: 'address' },
-        { name: 'account', type: 'address' },
-      ],
+      name: 'getClaimableRewards',
+      inputs: [{ name: 'account', type: 'address' }],
       outputs: [{ type: 'uint256' }],
       stateMutability: 'view',
     },
@@ -457,6 +567,22 @@ export const Abis = {
       inputs: [{ name: 'recipient', type: 'address' }],
       outputs: [],
       stateMutability: 'nonpayable',
+    },
+    {
+      type: 'event',
+      name: 'RewardsClaimed',
+      inputs: [
+        { name: 'account', type: 'address', indexed: true },
+        { name: 'amount', type: 'uint256', indexed: false },
+      ],
+    },
+    {
+      type: 'event',
+      name: 'RewardsDistributed',
+      inputs: [
+        { name: 'distributor', type: 'address', indexed: true },
+        { name: 'totalAmount', type: 'uint256', indexed: false },
+      ],
     },
   ],
 

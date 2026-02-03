@@ -1,4 +1,4 @@
-import type { Address, Hex } from 'viem'
+import type { Abi, Address, Hex } from 'viem'
 import { decodeFunctionResult, encodeFunctionData } from 'viem'
 import { getPublicClient, getWalletClient } from '../lib/client.js'
 import { buildExplorerTxUrl } from '../lib/config.js'
@@ -18,9 +18,9 @@ export async function readContract<T = unknown>(params: ContractCallParams): Pro
 
   const result = await client.readContract({
     address: validateAddress(address),
-    abi: abi as any,
+    abi: abi as Abi,
     functionName,
-    args: args as any,
+    args: args as readonly unknown[],
   })
 
   return result as T
@@ -37,9 +37,9 @@ export async function readContractMulti<T = unknown[]>(
   const results = await client.multicall({
     contracts: calls.map((call) => ({
       address: validateAddress(call.address),
-      abi: call.abi as any,
+      abi: call.abi as Abi,
       functionName: call.functionName,
-      args: (call.args || []) as any,
+      args: (call.args || []) as readonly unknown[],
     })),
   })
 
@@ -60,9 +60,9 @@ export async function simulateContract<T = unknown>(params: ContractWriteParams)
 
   const result = await client.simulateContract({
     address: validateAddress(address),
-    abi: abi as any,
+    abi: abi as Abi,
     functionName,
-    args: args as any,
+    args: args as readonly unknown[],
     value,
   })
 
@@ -82,9 +82,9 @@ export async function writeContract(params: ContractWriteParams): Promise<Transa
 
   const hash = await client.writeContract({
     address: validateAddress(address),
-    abi: abi as any,
+    abi: abi as Abi,
     functionName,
-    args: args as any,
+    args: args as readonly unknown[],
     value,
   })
 
@@ -133,16 +133,16 @@ export async function sendTransaction(params: {
  * Encode function data for a contract call
  */
 export function encodeContractData(params: {
-  abi: unknown[]
+  abi: Abi
   functionName: string
-  args?: unknown[]
+  args?: readonly unknown[]
 }): Hex {
   const { abi, functionName, args = [] } = params
 
   return encodeFunctionData({
-    abi: abi as any,
+    abi,
     functionName,
-    args: args as any,
+    args,
   })
 }
 
@@ -150,14 +150,14 @@ export function encodeContractData(params: {
  * Decode function result
  */
 export function decodeContractResult<T = unknown>(params: {
-  abi: unknown[]
+  abi: Abi
   functionName: string
   data: Hex
 }): T {
   const { abi, functionName, data } = params
 
   return decodeFunctionResult({
-    abi: abi as any,
+    abi,
     functionName,
     data,
   }) as T
@@ -189,9 +189,9 @@ export async function estimateContractGas(params: ContractWriteParams): Promise<
 
   return client.estimateContractGas({
     address: validateAddress(address),
-    abi: abi as any,
+    abi: abi as Abi,
     functionName,
-    args: args as any,
+    args: args as readonly unknown[],
     value,
   })
 }
